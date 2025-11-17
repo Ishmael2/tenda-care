@@ -1,0 +1,65 @@
+type User @table {
+  displayName: String!
+  userType: String!
+  createdAt: Timestamp!
+  email: String
+  photoUrl: String
+  bio: String
+  contactInfo: String
+  disabilities: [String]
+  servicesOffered: [String]
+  qualifications: [String]
+}
+
+type Community @table {
+  name: String!
+  description: String!
+  createdAt: Timestamp!
+  imageUrl: String
+  rules: String
+}
+
+type Post @table {
+  content: String!
+  createdAt: Timestamp!
+  author: User!
+  community: Community
+  imageUrl: String
+  videoUrl: String
+}
+
+type Service @table {
+  title: String!
+  description: String!
+  serviceType: String!
+  createdAt: Timestamp!
+  provider: User!
+  location: String
+  contactInfo: String
+  website: String
+  priceRange: String
+}
+
+type Content @table {
+  title: String!
+  contentType: String!
+  url: String!
+  createdAt: Timestamp!
+  author: User
+  description: String
+  imageUrl: String
+  tags: [String]
+}
+
+type Connection @table(key: ["initiator", "recipient"]) {
+  initiator: User!
+  recipient: User!
+  status: String!
+  createdAt: Timestamp!
+}
+
+type Membership @table(key: ["user", "community"]) {
+  user: User!
+  community: Community!
+  joinedAt: Timestamp!
+}

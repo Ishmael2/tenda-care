@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tenda-care
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tenda-care
+  template:
+    metadata:
+      labels:
+        app: tenda-care
+    spec:
+      containers:
+        - name: tenda-care
+          image: my-react-app:1.0
+          ports:
+            - containerPort: 80

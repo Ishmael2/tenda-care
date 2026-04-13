@@ -1,13 +1,334 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tailwind CSS v4 handles base, components, and utilities through the directives above.
+  Standard CSS @layer directives are used here to organize custom brand styles.
+*/
+
+/* ====== BASE STYLES ====== */
+@layer base {
+  * {
+    @apply antialiased;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-white text-slate-900 font-sans;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-black tracking-tight;
+  }
+
+  h1 {
+    @apply text-5xl lg:text-8xl leading-[1.1];
+  }
+
+  h2 {
+    @apply text-4xl lg:text-6xl leading-tight;
+  }
+
+  h3 {
+    @apply text-2xl lg:text-4xl;
+  }
+
+  p {
+    @apply font-normal text-slate-700;
+  }
+
+  a {
+    @apply text-red-700 hover:text-red-800 transition-colors;
+  }
+
+  button {
+    @apply font-black transition-all outline-none;
+  }
+
+  input, textarea, select {
+    @apply font-sans;
+  }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* ====== CUSTOM COMPONENTS ====== */
+@layer components {
+  /* Buttons */
+  .btn-primary {
+    @apply px-8 py-4 bg-red-700 hover:bg-red-800 text-white font-black rounded-xl shadow-2xl shadow-red-900/40 transition-all uppercase tracking-widest text-xs hover:scale-105 active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-2xl transition-all uppercase tracking-widest text-xs hover:scale-105 active:scale-95;
+  }
+
+  .btn-outline {
+    @apply px-8 py-4 bg-transparent border-2 border-slate-700 hover:border-slate-500 text-white font-black rounded-xl transition-all uppercase tracking-widest text-xs hover:bg-slate-800/30 hover:scale-105 active:scale-95;
+  }
+
+  .btn-ghost {
+    @apply px-8 py-3 border-2 border-slate-900 text-slate-900 rounded-xl font-black hover:bg-slate-900 hover:text-white transition-all uppercase text-xs tracking-widest hover:scale-105 active:scale-95;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100 transition-all hover:shadow-xl hover:border-red-200;
+  }
+
+  .card-hover {
+    @apply card hover:-translate-y-2 cursor-pointer;
+  }
+
+  .card-group {
+    @apply bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-start space-x-8 group hover:shadow-xl hover:-translate-y-2 transition-all cursor-pointer;
+  }
+
+  /* Badges */
+  .badge {
+    @apply px-4 py-1 bg-slate-100 rounded-full text-[10px] font-black text-slate-600 tracking-widest uppercase shadow-sm;
+  }
+
+  .badge-red {
+    @apply px-4 py-1 bg-red-100 text-red-700 font-black rounded-full text-[10px] tracking-widest uppercase shadow-sm;
+  }
+
+  .badge-success {
+    @apply px-4 py-1 bg-green-100 text-green-700 font-black rounded-full text-[10px] tracking-widest uppercase shadow-sm;
+  }
+
+  /* Input Styles */
+  .input-base {
+    @apply w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-red-500 font-bold transition-all;
+  }
+
+  .input-lg {
+    @apply w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-red-500 font-bold transition-all;
+  }
+
+  /* Section Headers */
+  .section-header {
+    @apply flex items-center space-x-3 text-red-600 font-black tracking-widest uppercase mb-4 text-xs hover:text-red-700 transition-colors cursor-pointer;
+  }
+
+  /* Icons */
+  .icon-rotate {
+    @apply transition-transform hover:rotate-12;
+  }
+
+  .icon-scale {
+    @apply transition-transform hover:scale-110;
+  }
+
+  .icon-spin-slow {
+    @apply animate-spin;
+    animation-duration: 4s;
+  }
+
+  /* Overlay */
+  .overlay-modal {
+    @apply fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-md;
+  }
+
+  /* Text Utilities */
+  .text-gradient {
+    @apply bg-gradient-to-r from-red-600 to-red-900 bg-clip-text text-transparent;
+  }
+
+  .text-title {
+    @apply text-4xl font-black text-slate-900 tracking-tight;
+  }
+
+  .text-subtitle {
+    @apply text-xl font-bold text-slate-500 tracking-wide;
+  }
+
+  /* Border Divider */
+  .divider {
+    @apply w-24 h-2 bg-red-700 rounded-full hover:w-32 transition-all;
+  }
+}
+
+/* ====== CUSTOM UTILITIES ====== */
+@layer utilities {
+  /* Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full transition-colors;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-500;
+  }
+
+  /* Animations */
+  .animate-in {
+    @apply animate-fade-in;
+  }
+
+  .animate-float {
+    @apply animate-float;
+  }
+
+  .animate-glow {
+    @apply animate-glow;
+  }
+
+  .animate-shimmer {
+    @apply animate-shimmer;
+  }
+
+  /* Display Utilities */
+  .flex-center {
+    @apply flex items-center justify-center;
+  }
+
+  .flex-between {
+    @apply flex items-center justify-between;
+  }
+
+  .grid-auto {
+    @apply grid auto-cols-max;
+  }
+
+  /* Sizing */
+  .w-fit-content {
+    @apply w-max;
+  }
+
+  .h-screen-minus-header {
+    @apply h-[calc(100vh-6rem)];
+  }
+
+  /* Positioning */
+  .absolute-center {
+    @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
+  }
+
+  /* Spacing */
+  .space-y-cozy {
+    @apply space-y-8;
+  }
+
+  .space-x-cozy {
+    @apply space-x-8;
+  }
+
+  /* Text */
+  .truncate-2 {
+    @apply line-clamp-2;
+  }
+
+  .truncate-3 {
+    @apply line-clamp-3;
+  }
+
+  .text-uppercase-sm {
+    @apply uppercase tracking-widest text-xs font-black;
+  }
+
+  .text-uppercase-xs {
+    @apply uppercase tracking-[0.2em] text-[10px] font-black;
+  }
+
+  /* Hover Effects */
+  .hover-lift {
+    @apply hover:-translate-y-2 transition-all;
+  }
+
+  .hover-glow {
+    @apply hover:shadow-red transition-all;
+  }
+
+  .hover-color-shift {
+    @apply hover:text-red-700 transition-colors;
+  }
+
+  /* Focus States */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
+  }
+
+  /* Transitions */
+  .transition-smooth {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  .transition-slow {
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+  /* Opacity */
+  .bg-overlay-light {
+    @apply bg-white/5;
+  }
+
+  .bg-overlay-dark {
+    @apply bg-black/10;
+  }
+
+  /* Gradients */
+  .gradient-red {
+    @apply bg-gradient-to-br from-red-600 to-red-900;
+  }
+
+  .gradient-slate {
+    @apply bg-gradient-to-br from-slate-700 to-slate-900;
+  }
+}
+
+/* ====== RESPONSIVE UTILITIES ====== */
+@media (max-width: 640px) {
+  @layer base {
+    body {
+      @apply text-sm;
+    }
+
+    h1 {
+      @apply text-3xl;
+    }
+
+    h2 {
+      @apply text-2xl;
+    }
+  }
+}
+
+/* ====== ACCESSIBILITY ====== */
+@layer base {
+  ::selection {
+    @apply bg-red-700 text-white;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-red-700;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      @apply !animate-none !transition-none;
+    }
+  }
+}
+
+/* ====== PRINT STYLES ====== */
+@media print {
+  @layer base {
+    body {
+      @apply bg-white text-black;
+    }
+
+    button, nav, .no-print {
+      @apply hidden;
+    }
+  }
 }

@@ -1,1087 +1,869 @@
-/* global __firebase_config __initial_auth_token __app_id */ 
-import React, { useState, useEffect, useCallback } from 'react';
-// Changed remote CDN imports to standard package names for React compatibility
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, setLogLevel, collection, onSnapshot, addDoc, query } from 'firebase/firestore';
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Circle as LucideCircle, 
+  Globe, 
+  ShieldCheck, 
+  Users, 
+  ArrowRight, 
+  Activity, 
+  Search, 
+  Menu, 
+  X,
+  CreditCard,
+  MapPin,
+  Stethoscope,
+  Scale,
+  Briefcase,
+  Award,
+  GraduationCap,
+  HeartPulse,
+  Heart,
+  Download,
+  Plus,
+  CheckCircle2,
+  Info,
+  Lock,
+  ChevronRight,
+  RefreshCw,
+  ExternalLink
+} from 'lucide-react';
 
-// --- Global Variables (Canvas Environment Injection) ---
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'tenda-care-default'; // Fallback App ID
-
-// --- Page Definitions ---
+// --- Constants & Data ---
 const PAGES = {
     HOME: 'HOME',
     RESOURCES: 'RESOURCES',
     THERAPIES: 'THERAPIES',
-    RESEARCH: 'RESEARCH', // New Research Page
-    EXCHANGE: 'EXCHANGE', // New Equipment Exchange Page
+    RESEARCH: 'RESEARCH',
+    EXCHANGE: 'EXCHANGE',
     GET_INVOLVED: 'GET_INVOLVED',
 };
 
-// --- Static Mock Data (Previously AI-fetched) ---
-const STATIC_ADVOCACY_CONTENT = {
-    newsSummary: "The UN has approved a new resolution focusing on digital accessibility standards for global education platforms.",
-    globalTrainings: [
-        { title: "Global Digital Skills Workshop", summary: "Free online training covering web development and accessible design principles.", link: "#" },
-        { title: "Disability Rights Law Seminar", summary: "International webinar on CRPD compliance and advocacy strategies.", link: "#" },
-        { title: "Assistive Tech Implementation", summary: "Course on deploying and managing new communication technologies.", link: "#" }
+const DEVICE_TYPES = [
+  "Mobility (Wheelchairs, Crutches)",
+  "Visual (Braille, White Canes)",
+  "Hearing (Digital Aids, Vibrating Alarms)",
+  "Tech (Specialized Keyboards, Screen Readers)",
+  "Daily Living (Adapted Utensils, Reach Sticks)"
+];
+
+const INITIAL_MOCK_EQUIPMENT = [
+    { id: '1', type: 'donation', name: 'Standard Wheelchair', deviceType: "Mobility", condition: 'Excellent', donor: "Anon", timestamp: new Date().toISOString() },
+    { id: '2', type: 'donation', name: 'Braille Keyboard', deviceType: "Visual", condition: 'Good', donor: "Elena", timestamp: new Date().toISOString() },
+    { id: '3', type: 'donation', name: 'Digital Hearing Aid', deviceType: "Hearing", condition: 'New', donor: "John", timestamp: new Date().toISOString() },
+    { id: '4', type: 'donation', name: 'Crutches (Pair)', deviceType: "Mobility", condition: 'Fair', donor: "Sam", timestamp: new Date().toISOString() }
+];
+
+const STATIC_CONTENT = {
+    policies: [
+      { title: "Constitution of Kenya (Article 54)", desc: "Guarantees the right to be treated with dignity and reasonable accommodation.", year: "2010", type: "National Law" },
+      { title: "UN CRPD", desc: "Global human rights standards for inclusion and non-discrimination.", year: "2006", type: "International Treaty" },
+      { title: "Persons with Disabilities Act", desc: "Primary legislative framework governing the rights of PWDs in Kenya.", year: "2003", type: "Statute" },
+      { title: "KS 2952: Accessible ICT Standards", desc: "Technical standards for digital product accessibility in East Africa.", year: "2022", type: "Technical Standard" }
     ],
-    kenyaTrainings: [
-        { title: "Kenya Micro-Enterprise Grant Program", summary: "Application open for small business grants for PWD entrepreneurs.", link: "#" },
-        { title: "Accessible Transport Forum (Nairobi)", summary: "Local workshop on demanding better public transit accessibility.", link: "#" },
-        { title: "Digital Marketing for PWDs", summary: "In-person training focused on job-ready online marketing skills.", link: "#" }
+    articles: [
+      { id: 1, author: "Dr. Elena Mwaniki", title: "The Digital Divide: Why Accessibility is Not Optional", excerpt: "As banking moves online, we must ensure 'digital-first' doesn't mean 'PWD-last'...", date: "Dec 15, 2023", category: "Tech Advocacy" },
+      { id: 2, author: "Samuel Otieno", title: "Navigating Nairobi: A Wheelchair User's Manifesto", excerpt: "Universal design in public transport is a fundamental right to movement.", date: "Nov 28, 2023", category: "Urban Planning" }
+    ],
+    projects: [
+      { id: 1, title: "Accessible Banking Initiative", status: "Active", desc: "Redesigning mobile interfaces for blind users with Tier-1 banks.", impact: "25,000+ users", tags: ["FinTech", "UX"] },
+      { id: 2, title: "Rural Digital Literacy Hubs", status: "Completed", desc: "Solar-powered computer labs in remote areas for PWD learners.", impact: "800 graduates", tags: ["Education", "Infra"] }
     ]
 };
 
-
-// --- Inline SVG Components for Accessibility and Consistency ---
+// --- Sub-Components ---
 
 const LogoIcon = () => (
-    <svg className="h-8 w-8 text-red-700" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h2v-6h-2v6zm0-8h2V7h-2v2z"/>
+    <svg viewBox="0 0 24 24" className="w-6 h-6 text-white transition-transform hover:scale-110">
+        <circle cx="12" cy="12" r="9" fill="currentColor" />
     </svg>
 );
 
-const AdvocacyIcon = () => (
-    <svg className="h-10 w-10 text-red-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-9.618 9.043m15.836 2.365a11.955 11.955 0 01-9.043 9.618 11.955 11.955 0 01-2.365-15.836"/>
-    </svg>
+const Notification = ({ message, type, onClose }) => (
+  <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[3000] animate-in fade-in slide-in-from-top-4 duration-500 w-full max-w-sm px-6">
+    <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center space-x-3 border-2 backdrop-blur-md ${
+      type === 'success' ? 'bg-slate-900/90 text-white border-green-500' : 'bg-red-50/90 text-red-900 border-red-200'
+    }`}>
+      {type === 'success' ? <CheckCircle2 className="text-green-500 w-5 h-5 flex-shrink-0" /> : <Info className="text-red-500 w-5 h-5 flex-shrink-0" />}
+      <span className="font-bold text-sm">{message}</span>
+      <button onClick={onClose} className="ml-auto hover:opacity-70 p-1"><X className="w-4 h-4" /></button>
+    </div>
+  </div>
 );
 
-const EmpowermentIcon = () => (
-    <svg className="h-10 w-10 text-red-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-5h-5v5zM12 20h5v-5h-5v5zM7 20h5v-5H7v5zM2 20h5v-5H2v5zM17 10h5v-5h-5v5zM12 10h5v-5h-5v5zM7 10h5v-5H7v5zM2 10h5v-5H2v5zM17 0h5v-5h-5v5zM12 0h5v-5h-5v5zM7 0h5v-5H7v5zM2 0h5v-5H2v5z"/>
-    </svg>
-);
-
-const AccessibilityIcon = () => (
-    <svg className="h-10 w-10 text-red-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-    </svg>
-);
-
-const CoachingIcon = () => (
-    <svg className="w-10 h-10 text-red-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 10h-2c-1.104 0-2 .896-2 2v4M18 10h-4M6 10h4m-4 4h4m-4-4v4m16 0A9 9 0 112 12a9 9 0 0120 0z"/>
-    </svg>
-);
-
-const LinkArrow = () => (
-    <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-);
-
-const PhysicalTherapyIcon = () => (
-    <svg className="w-10 h-10 text-red-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h1a4 4 0 014 4v3m-4 0v3m-4 0v-6m0 0h-1a4 4 0 00-4 4v3m10-7h.01M16 19v2m-8-2v2m-4-2h12a2 2 0 002-2V7a2 2 0 00-2-2H8a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-    </svg>
-);
-
-const OccupationalTherapyIcon = () => (
-    <svg className="w-10 h-10 text-red-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-14-1V9a2 2 0 012-2h2m0 0v-2m-2 2v2m2 0h2m4-2h6m-3-3v6"/>
-    </svg>
-);
-
-const SpeechTherapyIcon = () => (
-    <svg className="w-10 h-10 text-red-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.787-1.294l-4.576 1.83a.998.998 0 01-1.28-1.28L4.294 6.787A9.86 9.86 0 0112 4c4.97 0 9 3.582 9 8z"/>
-    </svg>
-);
-
-const MentalHealthIcon = () => (
-    <svg className="w-10 h-10 text-red-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0zM12 21V3"/>
-    </svg>
-);
-
-const ResearchIcon = () => (
-    <svg className="h-10 w-10 text-red-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M17 17l-2-2-2 2"/>
-    </svg>
-);
-
-const ExchangeIcon = () => (
-    <svg className="h-10 w-10 text-red-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 11V7a4 4 0 118 0v4m-5 4h5m-5 4h5M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-    </svg>
-);
-
-const NewsIcon = () => (
-    <svg className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v10m-7 4h3m-3 0h3m-3 0h.01M17 12l2-2 2 2M7 12l-2 2-2-2"/>
-    </svg>
-);
-
-const TrainingIcon = () => (
-    <svg className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.787-1.294l-4.576 1.83a.998.998 0 01-1.28-1.28L4.294 6.787A9.86 9.86 0 0112 4c4.97 0 9 3.582 9 8z"/>
-    </svg>
-);
-
-const LinkIcon = () => (
-    <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-    </svg>
-);
-
-// Helper array for navigation links (Now links to PAGES)
-const navLinks = [
-    { page: PAGES.HOME, label: 'Home' },
-    { page: PAGES.RESOURCES, label: 'Resources' },
-    { page: PAGES.THERAPIES, label: 'Therapy Options' },
-    { page: PAGES.RESEARCH, label: 'Research' },
-    { page: PAGES.EXCHANGE, label: 'Exchange' },
-];
-
-// --- Sub-Component: Hero Section ---
 const HeroSection = ({ setPage }) => (
-    <section id="home" className="bg-white py-16 sm:py-24 lg:py-32 rounded-b-2xl shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-gray-900 mb-6 leading-tight">
-                <span className="block text-red-700">Amplifying the Voice</span>
-                <span className="block mt-2">of Every Person with a Disability.</span>
-            </h1>
-            <p className="mt-6 max-w-3xl mx-auto text-xl text-gray-600">
-                Our foundation is the principle: <strong className="text-red-700 font-bold">"Nothing About Us Without Us."</strong> We fight for dignity, inclusion, and equal rights in every aspect of community life.
-            </p>
-            <div className="mt-10 flex justify-center space-x-4">
-                <a href="#mission" className="px-8 py-3 border border-transparent text-lg font-medium rounded-lg text-white bg-red-700 hover:bg-red-800 transition duration-300 shadow-xl" role="button">
-                    Discover Our Mission
-                </a>
-                <button 
-                    onClick={() => setPage(PAGES.GET_INVOLVED)} 
-                    className="px-8 py-3 border-2 border-red-700 text-lg font-medium rounded-lg text-red-700 bg-white hover:bg-red-50 transition duration-300 shadow-xl" 
-                    role="button"
-                >
-                    Take Action
+    <section className="relative overflow-hidden bg-slate-950 py-24 lg:py-32 selection:bg-red-500 selection:text-white min-h-[90vh] flex items-center">
+        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[70%] rounded-full bg-red-600 blur-[140px]"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[70%] rounded-full bg-red-800 blur-[140px]"></div>
+        </div>
+        <div className="relative max-w-7xl mx-auto px-6 flex flex-col lg:flex-row items-center justify-between gap-16 w-full">
+            <div className="lg:w-3/5 text-center lg:text-left">
+                <div className="inline-flex items-center space-x-3 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-black uppercase tracking-widest mb-8">
+                    <Globe className="w-4 h-4 animate-pulse" />
+                    <span>Global Disability Rights Network</span>
+                </div>
+                <h1 className="text-5xl lg:text-8xl font-black text-white mb-8 leading-[0.9] tracking-tighter uppercase">
+                    NOTHING <br />ABOUT US <br />
+                    <span className="text-red-700 italic">WITHOUT US.</span>
+                </h1>
+                <p className="text-lg lg:text-xl text-slate-400 max-w-2xl mb-12 leading-relaxed font-medium">
+                    Tenda Care is dedicated to amplifying the voices of PWDs worldwide. We fight for dignity, radical inclusion, and the dismantling of structural barriers.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                    <button onClick={() => setPage(PAGES.GET_INVOLVED)} className="w-full sm:w-auto px-10 py-5 bg-red-700 hover:bg-red-800 text-white font-black rounded-full shadow-2xl shadow-red-900/40 transition-all flex items-center justify-center uppercase tracking-widest text-xs hover:-translate-y-1">
+                        JOIN THE MOVEMENT <ArrowRight className="ml-3 w-4 h-4" />
+                    </button>
+                    <button onClick={() => setPage(PAGES.RESOURCES)} className="w-full sm:w-auto px-10 py-5 bg-white/5 border-2 border-slate-800 hover:border-slate-600 text-white font-black rounded-full transition-all uppercase tracking-widest text-xs hover:bg-white/10">
+                        LEARN OUR STRATEGY
+                    </button>
+                </div>
+            </div>
+            <div className="hidden lg:flex w-1/3 justify-center relative">
+                <div className="w-80 h-80 rounded-[3rem] bg-gradient-to-br from-red-600 to-red-950 rotate-12 flex items-center justify-center shadow-[0_0_100px_rgba(185,28,28,0.2)] relative group overflow-hidden">
+                    <LucideCircle className="w-48 h-48 text-white/10 absolute fill-current group-hover:scale-125 transition-transform duration-1000" />
+                    <Users className="w-32 h-32 text-white relative z-10" />
+                </div>
+            </div>
+        </div>
+    </section>
+);
+
+const PillarsSection = () => {
+    const pillars = [
+        { id: '01', title: "Economic Independence", desc: "Building inclusive employment pathways and entrepreneurial grant systems.", icon: <CreditCard className="w-6 h-6" />, color: "from-red-600 to-red-800" },
+        { id: '02', title: "Universal Access", desc: "Advocating for 100% accessibility in transit and architecture.", icon: <MapPin className="w-6 h-6" />, color: "from-slate-800 to-slate-950" },
+        { id: '03', title: "Healthcare Equity", desc: "Ensuring specialized rehabilitation and therapy services.", icon: <Stethoscope className="w-6 h-6" />, color: "from-red-800 to-red-950" },
+        { id: '04', title: "Policy Leadership", desc: "Empowering PWDs to take lead seats in legislative bodies.", icon: <Scale className="w-6 h-6" />, color: "from-slate-900 to-black" }
+    ];
+
+    return (
+        <section className="py-24 bg-white relative">
+            <div className="max-w-7xl mx-auto px-6">
+                <div className="mb-16 text-left max-w-2xl">
+                    <p className="text-red-700 font-black tracking-widest uppercase mb-3 text-xs">Mission Framework</p>
+                    <h2 className="text-4xl lg:text-6xl font-black text-slate-950 mb-6 tracking-tighter uppercase leading-none">THE FOUR PILLARS <br />OF RADICAL CHANGE</h2>
+                    <div className="w-24 h-2 bg-red-700 rounded-full"></div>
+                </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {pillars.map((p) => (
+                        <div key={p.id} className="group flex flex-col h-full bg-slate-50 p-8 rounded-[2rem] border border-slate-100 transition-all hover:shadow-xl hover:border-red-100 hover:-translate-y-1">
+                            <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${p.color} text-white flex items-center justify-center mb-6 shadow-md group-hover:scale-110 transition-transform`}>
+                                {p.icon}
+                            </div>
+                            <span className="text-slate-200 font-black text-4xl mb-4 leading-none tracking-tighter transition-colors group-hover:text-red-100">{p.id}</span>
+                            <h3 className="text-xl font-black text-slate-950 mb-4 tracking-tight uppercase leading-tight">{p.title}</h3>
+                            <p className="text-slate-500 leading-relaxed flex-grow font-medium text-sm">{p.desc}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
+};
+
+// --- Current Affairs Feed Component ---
+const CurrentAffairsFeed = () => {
+    const [news, setNews] = useState([]);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [lastUpdated, setLastUpdated] = useState(new Date());
+
+    const fetchCurrentAffairs = async () => {
+        setIsRefreshing(true);
+        try {
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            const freshData = [
+                { id: Date.now() + 1, source: "NCPWD Kenya", title: "New Digital Accessibility Grants Announced for Tech Startups", time: "10 mins ago", link: "#" },
+                { id: Date.now() + 2, source: "Global A11y", title: "W3C Releases Updated WCAG 3.0 Draft for Cognitive Accessibility", time: "2 hours ago", link: "#" },
+                { id: Date.now() + 3, source: "Policy Watch", title: "Nairobi County Assembly Debates New Universal Design Transport Bill", time: "5 hours ago", link: "#" }
+            ];
+            
+            setNews(freshData);
+            setLastUpdated(new Date());
+        } catch (error) {
+            console.error("Failed to fetch news", error);
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchCurrentAffairs();
+        const interval = setInterval(() => { fetchCurrentAffairs(); }, 900000); 
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <div className="bg-slate-950 p-8 lg:p-12 rounded-[2rem] lg:rounded-[3rem] text-white shadow-xl relative overflow-hidden mb-24 border border-slate-800">
+            <div className="absolute -top-32 -right-32 w-96 h-96 bg-red-700/10 blur-[100px] rounded-full pointer-events-none"></div>
+            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 border-b border-white/10 pb-6 relative z-10">
+                <div>
+                    <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                        <p className="text-red-500 font-black uppercase tracking-[0.3em] text-[10px]">Live Updates</p>
+                    </div>
+                    <h3 className="text-3xl lg:text-4xl font-black uppercase tracking-tighter leading-none">Global & Local <br/>Current Affairs</h3>
+                </div>
+                
+                <div className="mt-6 md:mt-0 flex flex-col items-start md:items-end">
+                    <button 
+                        onClick={fetchCurrentAffairs}
+                        disabled={isRefreshing}
+                        className="flex items-center space-x-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all group"
+                    >
+                        <RefreshCw className={`w-4 h-4 text-slate-400 group-hover:text-white ${isRefreshing ? 'animate-spin text-red-500' : ''}`} />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Sync News</span>
+                    </button>
+                    <p className="text-[9px] text-slate-500 font-bold tracking-widest mt-2 uppercase">
+                        Updated: {lastUpdated.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </p>
+                </div>
+            </div>
+
+            <div className="space-y-4 relative z-10" aria-live="polite" aria-busy={isRefreshing}>
+                {news.map((item) => (
+                    <a key={item.id} href={item.link} className="block bg-white/5 border border-white/5 hover:border-red-500/30 p-6 rounded-2xl transition-all group hover:-translate-y-1">
+                        <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
+                            <span className="px-3 py-1 bg-red-500/20 text-red-400 font-black text-[9px] uppercase tracking-widest rounded-md">
+                                {item.source}
+                            </span>
+                            <span className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">{item.time}</span>
+                        </div>
+                        <div className="flex justify-between items-center gap-4">
+                            <h4 className="text-lg lg:text-xl font-black tracking-tight leading-snug group-hover:text-red-400 transition-colors">
+                                {item.title}
+                            </h4>
+                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-red-700 transition-all flex-shrink-0">
+                                <ExternalLink className="w-4 h-4 text-white" />
+                            </div>
+                        </div>
+                    </a>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// --- Page Components ---
+
+const ResourcesPage = ({ setNotif }) => {
+    const [view, setView] = useState('list');
+    
+    if (view === 'criteria') return (
+        <div className="py-24 max-w-3xl mx-auto px-6 animate-in fade-in slide-in-from-bottom-8">
+            <button onClick={() => setView('list')} className="mb-8 font-black text-slate-400 hover:text-red-700 uppercase text-xs tracking-[0.2em] flex items-center transition-all">
+                <X className="mr-2 w-4 h-4" /> CANCEL
+            </button>
+            <h2 className="text-4xl font-black text-slate-950 mb-10 tracking-tighter uppercase">Vetting Criteria</h2>
+            <div className="bg-white p-8 lg:p-12 rounded-[2rem] border-2 border-slate-100 shadow-xl space-y-6 mb-12">
+              {[
+                { title: "Originality", desc: "Content must be unique and authored by the submitter." },
+                { title: "Inclusive Lexicon", desc: "Strict adherence to person-first and respectful language." },
+                { title: "Scalable Advocacy", desc: "Topics must address systemic solutions or deep personal insight." },
+                { title: "Evidence", desc: "Data and policy references must be cited where applicable." }
+              ].map((c, i) => (
+                <div key={i} className="flex items-start group">
+                    <div className="w-10 h-10 rounded-xl bg-red-50 text-red-700 flex items-center justify-center mr-4 group-hover:bg-red-700 group-hover:text-white transition-colors flex-shrink-0">
+                        <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <p className="font-black uppercase text-sm text-slate-950 mb-1">{c.title}</p>
+                        <p className="text-slate-500 font-medium text-sm leading-relaxed">{c.desc}</p>
+                    </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setView('form')} className="w-full py-5 bg-red-700 text-white font-black rounded-full uppercase tracking-[0.2em] text-xs shadow-lg hover:bg-red-800 transition-all hover:scale-[1.02]">
+                PROCEED TO FORM
+            </button>
+        </div>
+    );
+
+    if (view === 'form') return (
+        <div className="py-24 max-w-3xl mx-auto px-6 animate-in fade-in">
+            <h2 className="text-4xl font-black text-slate-950 mb-10 tracking-tighter uppercase text-center">ARTICLE SUBMISSION</h2>
+            <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); setNotif({ msg: "Article submitted for review.", type: "success" }); setView('list'); }}>
+              <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-5">
+                <input placeholder="Full Legal Name" className="w-full p-5 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-500 font-bold transition-colors" required />
+                <input placeholder="Proposed Article Title" className="w-full p-5 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-500 font-bold transition-colors" required />
+                <select className="w-full p-5 bg-white border border-slate-200 rounded-2xl outline-none font-bold appearance-none">
+                    <option>Policy & Law</option>
+                    <option>Tech & Innovation</option>
+                    <option>Living Narratives</option>
+                </select>
+                <textarea placeholder="Paste your article content here (min 500 words)..." className="w-full p-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-500 resize-none font-medium text-base leading-relaxed h-64" required></textarea>
+              </div>
+              <button type="submit" className="w-full py-5 bg-red-700 text-white font-black rounded-full uppercase tracking-[0.2em] text-xs shadow-lg hover:bg-red-800 transition-all">SUBMIT TO EDITORIAL BOARD</button>
+            </form>
+        </div>
+    );
+
+    return (
+        <div className="py-24 max-w-7xl mx-auto px-6 text-left">
+            <div className="max-w-3xl mb-20">
+                <p className="text-red-700 font-black tracking-widest uppercase mb-3 text-xs">Knowledge Base</p>
+                <h2 className="text-5xl lg:text-7xl font-black text-slate-950 uppercase tracking-tighter leading-[0.9] mb-8">Rights <br />Library</h2>
+                <p className="text-lg text-slate-500 font-medium leading-relaxed italic">Access definitive legislative frameworks, live policy updates, and advocate insights.</p>
+            </div>
+            
+            <CurrentAffairsFeed />
+            
+            <div className="grid md:grid-cols-2 gap-8 mb-32">
+                {STATIC_CONTENT.policies.map((p, i) => (
+                <div key={i} className="bg-white p-8 lg:p-10 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group cursor-default">
+                    <div className="w-12 h-12 bg-red-50 text-red-700 rounded-xl flex items-center justify-center mb-6 group-hover:bg-red-700 group-hover:text-white transition-all">
+                        <Scale className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">{p.type} • {p.year}</span>
+                    <h3 className="text-2xl font-black mb-4 uppercase tracking-tight text-slate-950 leading-tight">{p.title}</h3>
+                    <p className="text-slate-600 mb-8 font-medium leading-relaxed text-sm">{p.desc}</p>
+                    <button className="font-black text-red-700 uppercase text-xs tracking-[0.2em] flex items-center hover:translate-x-2 transition-transform">
+                        ACCESS ACT <ChevronRight className="ml-2 w-4 h-4" />
+                    </button>
+                </div>
+                ))}
+            </div>
+
+            <div className="bg-slate-950 -mx-6 px-6 py-24 rounded-[3rem] md:rounded-[4rem] text-white">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-8">
+                        <div>
+                            <h3 className="text-4xl lg:text-5xl font-black uppercase tracking-tight mb-4 leading-none">Advocate <br />Voices</h3>
+                            <div className="w-16 h-1 bg-red-700 rounded-full"></div>
+                        </div>
+                        <button onClick={() => setView('criteria')} className="px-8 py-4 bg-red-700 rounded-full font-black uppercase text-xs tracking-widest hover:bg-red-800 transition-all shadow-lg hover:-translate-y-1">
+                            PUBLISH ARTICLE
+                        </button>
+                    </div>
+                    <div className="grid lg:grid-cols-2 gap-8">
+                        {STATIC_CONTENT.articles.map(a => (
+                        <div key={a.id} className="bg-white/5 p-8 lg:p-10 rounded-[2rem] border border-white/10 hover:bg-white/10 transition-all group flex flex-col">
+                            <span className="text-red-500 font-black uppercase tracking-widest text-[10px] mb-6 block">{a.category}</span>
+                            <h4 className="text-2xl lg:text-3xl font-black mb-6 leading-tight tracking-tight group-hover:text-red-500 transition-colors uppercase">{a.title}</h4>
+                            <p className="text-slate-400 font-medium text-base leading-relaxed italic mb-8 flex-grow">"{a.excerpt}"</p>
+                            <div className="flex justify-between items-center pt-6 border-t border-white/5">
+                                <div>
+                                    <p className="font-black uppercase text-sm tracking-tighter">{a.author}</p>
+                                    <p className="text-[10px] text-slate-500 font-bold tracking-[0.2em] mt-1">{a.date}</p>
+                                </div>
+                                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-red-700 group-hover:translate-x-2 transition-all">
+                                    <ArrowRight className="w-4 h-4 text-white" />
+                                </div>
+                            </div>
+                        </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const TherapiesPage = ({ setNotif }) => {
+    const [selected, setSelected] = useState(null);
+    const services = [
+        { id: 1, title: "Clinical Physical Therapy", desc: "Advanced neuro-rehabilitation and biomechanical strength training.", icon: <Activity />, detail: "Specialized clinical care focusing on increasing mobility and posture correction for individuals with motor disabilities.", benefits: ["Neuro-plasticity Training", "Post-Surgical Management", "Functional Mobility Gains"] },
+        { id: 2, title: "Transition Life Coaching", desc: "Bridging the gap between secondary education and corporate leadership.", icon: <GraduationCap />, detail: "Intensive 1-on-1 mentorship for PWD graduates to navigate corporate hierarchies and recruitment processes.", benefits: ["Professional Branding", "Workspace Rights Training", "Leadership Etiquette"] },
+        { id: 3, title: "Identity Counseling", desc: "Psychological support for identity transitions and family resilience.", icon: <HeartPulse />, detail: "Mental health services focused on processing structural exclusion and building radical self-worth.", benefits: ["Identity Reclamation", "Peer Support Networks", "Stress Resilience"] },
+        { id: 4, title: "Inclusion Consulting", desc: "Full-spectrum organizational training for global enterprises.", icon: <Briefcase />, detail: "Sensitizing corporate workforces to build disability-confident ecosystems through legal and cultural shifts.", benefits: ["Hiring Bias Elimination", "Infrastructure Compliance", "Culture of Belonging"] }
+    ];
+
+    return (
+        <div className="py-24 bg-slate-50 min-h-screen px-6 text-left selection:bg-slate-900 selection:text-white">
+            <div className="max-w-7xl mx-auto">
+                <div className="max-w-3xl mb-20">
+                    <p className="text-red-700 font-black tracking-widest uppercase mb-3 text-xs">Wellness Ecosystem</p>
+                    <h2 className="text-5xl lg:text-7xl font-black text-slate-950 tracking-tighter leading-[0.9] mb-8 uppercase">Support</h2>
+                    <p className="text-lg text-slate-500 font-medium leading-relaxed">Closing the gap between clinical healthcare and corporate career success.</p>
+                </div>
+                <div className="grid md:grid-cols-2 gap-8">
+                {services.map(s => (
+                    <div key={s.id} className="bg-white p-8 lg:p-12 rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex flex-col items-start border border-white hover:border-red-50">
+                        <div className="w-16 h-16 bg-red-50 rounded-xl flex items-center justify-center text-red-700 mb-8 group-hover:bg-red-700 group-hover:text-white transition-all">
+                            {s.icon}
+                        </div>
+                        <h3 className="text-2xl font-black mb-4 uppercase tracking-tight text-slate-950 leading-tight">{s.title}</h3>
+                        <p className="text-slate-500 font-medium mb-8 leading-relaxed flex-grow text-base italic">"{s.desc}"</p>
+                        <button onClick={() => setSelected(s)} className="px-8 py-4 bg-slate-950 text-white font-black rounded-full uppercase text-[10px] tracking-[0.2em] hover:bg-red-700 transition-all shadow-md hover:-translate-y-1">
+                            VIEW PROGRAM
+                        </button>
+                    </div>
+                ))}
+                </div>
+            </div>
+            
+            {/* Modal */}
+            {selected && (
+                <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden">
+                        <button onClick={() => setSelected(null)} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-red-100 hover:text-red-700 transition-all"><X className="w-5 h-5"/></button>
+                        <div className="flex items-center space-x-4 mb-8">
+                            <div className="w-12 h-12 bg-red-700 text-white rounded-xl flex items-center justify-center shadow-lg">{selected.icon}</div>
+                            <p className="font-black uppercase tracking-[0.2em] text-[10px] text-red-700">Detailed Prospectus</p>
+                        </div>
+                        <h3 className="text-3xl lg:text-4xl font-black mb-6 uppercase tracking-tighter text-slate-950 leading-tight">{selected.title}</h3>
+                        <p className="text-base text-slate-500 mb-8 leading-relaxed font-medium">{selected.detail}</p>
+                        <div className="space-y-4 mb-10">
+                            {selected.benefits.map((b, i) => (
+                                <div key={i} className="flex items-center font-black uppercase text-xs text-slate-950 tracking-wider">
+                                    <CheckCircle2 className="text-green-500 mr-3 w-5 h-5 flex-shrink-0" /> 
+                                    {b}
+                                </div>
+                            ))}
+                        </div>
+                        <button onClick={() => { setNotif({msg: "Booking inquiry received.", type: "success"}); setSelected(null); }} className="w-full py-5 bg-red-700 text-white font-black rounded-full shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-red-800 transition-all">
+                            SECURE CONSULTATION
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const ResearchPage = ({ setNotif }) => {
+    const [view, setView] = useState('list');
+    
+    if (view === 'staff') return (
+        <div className="py-24 max-w-2xl mx-auto px-6">
+            <h2 className="text-4xl font-black text-slate-950 mb-10 uppercase tracking-tighter text-center leading-none">STAFF PORTAL <br /><span className="text-red-700">UPLOAD</span></h2>
+            <div className="bg-slate-950 p-8 lg:p-12 rounded-[2rem] text-white space-y-6 text-left shadow-2xl relative overflow-hidden">
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-700/20 blur-2xl rounded-full"></div>
+                <div className="flex items-center space-x-2"><Lock className="text-red-500 w-4 h-4" /><p className="font-black uppercase text-[10px] text-red-500 tracking-[0.2em]">Official Project Repository</p></div>
+                <input placeholder="Official Study Name" className="w-full p-5 bg-white/5 border border-white/10 rounded-2xl text-base font-bold focus:border-red-500 outline-none transition-colors" />
+                <textarea placeholder="Executive Summary..." className="w-full p-5 bg-white/5 border border-white/10 rounded-2xl resize-none font-medium text-base min-h-[150px] outline-none focus:border-red-500" rows="4"></textarea>
+                <div className="grid grid-cols-2 gap-4">
+                    <input placeholder="Impact Magnitude" className="w-full p-5 bg-white/5 border border-white/10 rounded-xl font-bold text-sm" />
+                    <input placeholder="Categories" className="w-full p-5 bg-white/5 border border-white/10 rounded-xl font-bold text-sm" />
+                </div>
+                <button onClick={() => { setNotif({msg: "Official Study Published.", type: "success"}); setView('list'); }} className="w-full py-5 bg-red-700 font-black uppercase text-xs tracking-[0.2em] rounded-full shadow-lg hover:bg-red-800 transition-all mt-4">PUBLISH TO PORTFOLIO</button>
+                <button onClick={() => setView('list')} className="w-full text-white/30 hover:text-white font-bold uppercase text-[10px] tracking-widest text-center transition-colors mt-2">Discard Draft</button>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="py-24 max-w-7xl mx-auto px-6 text-left">
+            <div className="mb-20 flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10">
+                <div className="max-w-2xl text-left">
+                    <p className="text-red-700 font-black tracking-widest uppercase mb-3 text-xs">Empirical Evidence</p>
+                    <h2 className="text-5xl lg:text-7xl font-black text-slate-950 uppercase tracking-tighter leading-[0.9] mb-8">Data <br />Assets</h2>
+                    <p className="text-lg text-slate-500 font-medium leading-relaxed max-w-xl italic font-serif">"Numbers without narratives are empty; narratives without numbers are anecdotes."</p>
+                </div>
+                <div className="flex flex-col items-start lg:items-end gap-6 w-full lg:w-auto">
+                    <div className="flex gap-3 w-full lg:w-auto">
+                        <div className="flex-1 lg:flex-none text-center px-6 py-2.5 bg-red-100 text-red-700 font-black rounded-full text-[10px] tracking-widest uppercase shadow-sm">24 ACTIVE</div>
+                        <div className="flex-1 lg:flex-none text-center px-6 py-2.5 bg-slate-100 text-slate-700 font-black rounded-full text-[10px] tracking-widest uppercase shadow-sm">12 PUBLISHED</div>
+                    </div>
+                    <button onClick={() => setView('staff')} className="text-[10px] font-black text-slate-400 hover:text-red-700 tracking-[0.2em] uppercase transition-colors flex items-center">
+                        <Lock className="w-3 h-3 mr-2" /> STAFF AUTHENTICATION
+                    </button>
+                </div>
+            </div>
+            
+            <div className="grid lg:grid-cols-3 gap-6 mb-24">
+                <div className="lg:col-span-2 bg-slate-950 rounded-[2rem] p-8 lg:p-12 text-white relative overflow-hidden group shadow-xl">
+                    <Globe className="absolute -right-10 -bottom-10 w-80 h-80 text-white/5 group-hover:scale-110 transition-transform duration-1000" />
+                    <span className="text-red-500 font-black text-[10px] tracking-[0.3em] mb-6 block uppercase leading-none">2026 Core Audit</span>
+                    <h3 className="text-4xl lg:text-5xl font-black mb-10 uppercase leading-tight tracking-tighter group-hover:text-red-500 transition-colors">DIGITAL ACCESSIBILITY <br />EAST AFRICA</h3>
+                    <button onClick={() => setNotif({msg: "Transferring Report...", type: "success"})} className="px-8 py-4 bg-white text-slate-950 font-black rounded-full flex items-center hover:bg-red-700 hover:text-white transition-all uppercase text-xs tracking-[0.2em] shadow-lg relative z-10 w-max">
+                        <Download className="mr-3 w-4 h-4" /> DOWNLOAD BRIEF
+                    </button>
+                </div>
+                <div className="bg-red-700 rounded-[2rem] p-8 lg:p-12 text-white flex flex-col justify-between shadow-xl">
+                    <div>
+                        <Award className="w-12 h-12 mb-8 shadow-sm" />
+                        <h3 className="text-2xl font-black uppercase leading-tight mb-4 tracking-tighter">IMPACT PORTFOLIO</h3>
+                        <p className="text-red-100 font-medium leading-relaxed text-sm mb-8 opacity-90">Systemic initiatives designed to dismantle structural exclusion across Nairobi Central.</p>
+                    </div>
+                    <button onClick={() => setNotif({msg: "Feature coming soon.", type: "info"})} className="w-full py-4 bg-slate-950 text-white font-black rounded-full flex items-center justify-center uppercase text-xs tracking-[0.2em] hover:bg-slate-900 transition-all shadow-md">
+                        <Plus className="mr-2 w-4 h-4" /> SUGGEST PROJECT
+                    </button>
+                </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+                {STATIC_CONTENT.projects.map(p => (
+                <div key={p.id} className="bg-white p-8 lg:p-10 rounded-[2rem] border border-slate-100 hover:border-red-200 transition-all shadow-sm group">
+                    <div className="flex justify-between items-start mb-8">
+                        <span className="px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-full text-[9px] font-black uppercase text-slate-400 tracking-widest shadow-sm">{p.status}</span>
+                        <div className="flex gap-2 flex-wrap justify-end">
+                            {p.tags.map(t => <span key={t} className="text-[9px] font-black text-red-700 border border-red-100 px-2.5 py-1 rounded-md uppercase">{t}</span>)}
+                        </div>
+                    </div>
+                    <h4 className="text-2xl lg:text-3xl font-black text-slate-950 mb-4 uppercase tracking-tighter leading-tight group-hover:text-red-700 transition-colors">{p.title}</h4>
+                    <p className="text-slate-500 font-medium mb-8 leading-relaxed italic text-base opacity-80">"{p.desc}"</p>
+                    <div className="bg-slate-50 p-6 rounded-2xl flex justify-between items-center border border-slate-100">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none">Impact</p>
+                        <p className="font-black text-red-700 uppercase tracking-tighter text-xl leading-none">{p.impact}</p>
+                    </div>
+                </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const ExchangePage = ({ setNotif, items, setItems }) => {
+    const [view, setView] = useState('list');
+    const [selectedType, setSelectedType] = useState("");
+    const [search, setSearch] = useState("");
+    
+    const filtered = useMemo(() => items.filter(i => i.name.toLowerCase().includes(search.toLowerCase())), [items, search]);
+
+    if (view === 'donate_step1') return (
+        <div className="py-24 max-w-4xl mx-auto px-6 animate-in fade-in">
+            <p className="text-red-700 font-black tracking-widest uppercase mb-6 text-xs text-center">Step 01 / Category Selection</p>
+            <h2 className="text-4xl lg:text-5xl font-black text-slate-950 mb-12 uppercase tracking-tighter leading-none text-center">CHOOSE DEVICE TYPE</h2>
+            <div className="grid md:grid-cols-2 gap-4">
+                {DEVICE_TYPES.map((t, i) => (
+                <button key={i} onClick={() => { setSelectedType(t); setView('donate_step2'); }} className="p-6 bg-white border border-slate-200 rounded-2xl text-left hover:border-red-700 hover:shadow-lg transition-all group flex items-center justify-between">
+                    <div>
+                        <span className="font-black text-slate-950 group-hover:text-red-700 text-lg uppercase tracking-tight block">{t.split('(')[0]}</span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mt-1 block">{t.split('(')[1]?.replace(')', '') || 'Misc'}</span>
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-red-700 group-hover:translate-x-1 transition-all" />
+                </button>
+                ))}
+            </div>
+            <div className="mt-12 flex justify-center">
+                <button onClick={() => setView('list')} className="px-8 py-4 bg-slate-100 text-slate-500 font-black uppercase text-xs tracking-widest rounded-full hover:bg-slate-200 transition-colors">
+                    CANCEL DONATION
                 </button>
             </div>
         </div>
-    </section>
-);
-
-// --- Sub-Component: Mission Section ---
-const MissionSection = () => (
-    <section id="mission" className="py-16 sm:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="lg:text-center">
-                <h2 className="text-base text-red-700 font-semibold tracking-wide uppercase">Our Core Commitment</h2>
-                <p className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
-                    A Vision for a Truly Inclusive Society
-                </p>
-                <p className="mt-4 max-w-3xl lg:mx-auto text-xl text-gray-600">
-                    We aim for a socially just, accessible, and inclusive community where the human rights, belonging, and potential of all people with disabilities are recognized, respected, and celebrated with pride.
-                </p>
-            </div>
-            <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-                <div className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition duration-300 transform hover:scale-[1.02]">
-                    <AdvocacyIcon />
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Advocacy & Rights</h3>
-                    <p className="text-gray-600">Championing systemic change to uphold the dignity and legal rights of PWDs at every level of government and society.</p>
-                </div>
-                <div className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition duration-300 transform hover:scale-[1.02]">
-                    <EmpowermentIcon />
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Empowerment</h3>
-                    <p className="text-gray-600">Fostering self-determination and building the leadership capacity of individuals with disabilities.</p>
-                </div>
-                <div className="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition duration-300 transform hover:scale-[1.02]">
-                    <AccessibilityIcon />
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Accessibility</h3>
-                    <p className="text-gray-600">Working to remove environmental, institutional, and attitudinal barriers in all public and digital spaces.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-);
-
-// --- Sub-Component: Pillars Section ---
-const PillarsSection = () => (
-    <section id="pillars" className="py-16 sm:py-24 bg-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="lg:text-center">
-                <h2 className="text-base text-red-700 font-semibold tracking-wide uppercase">Key Focus Areas</h2>
-                <p className="mt-2 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-                    Our Four Pillars of Action
-                </p>
-            </div>
-            <div className="mt-16 space-y-12">
-                <div className="flex flex-col md:flex-row bg-white rounded-xl shadow-lg p-6 md:p-10 border-l-4 border-red-600">
-                    <div className="md:w-1/3 flex-shrink-0 mb-4 md:mb-0">
-                        <h3 className="text-2xl font-extrabold text-red-700">1. Economic Empowerment</h3>
-                    </div>
-                    <div className="md:w-2/3 md:pl-10">
-                        <p className="text-gray-700 text-lg">We advocate for policies that ensure financial stability, access to quality jobs, and entrepreneurial opportunities for PWDs, fighting against employment discrimination and sub-minimum wages. This includes campaigning for inclusive employment strategies and skills development.</p>
-                    </div>
-                </div>
-                <div className="flex flex-col md:flex-row bg-white rounded-xl shadow-lg p-6 md:p-10 border-l-4 border-red-600">
-                    <div className="md:w-1/3 flex-shrink-0 mb-4 md:mb-0">
-                        <h3 className="text-2xl font-extrabold text-red-700">2. Accessible & Inclusive Environments</h3>
-                    </div>
-                    <div className="md:w-2/3 md:pl-10">
-                        <p className="text-gray-700 text-lg">Our focus is on making physical infrastructure, public transportation, and digital spaces barrier-free. We push for compliance with accessibility standards (like WCAG) and advocate for universal design principles in planning and construction.</p>
-                    </div>
-                </div>
-                <div className="flex flex-col md:flex-row bg-white rounded-xl shadow-lg p-6 md:p-10 border-l-4 border-red-600">
-                    <div className="md:w-1/3 flex-shrink-0 mb-4 md:mb-0">
-                        <h3 className="text-2xl font-extrabold text-red-700">3. Inclusive Services</h3>
-                    </div>
-                    <div className="md:w-2/3 md:pl-10">
-                        <p className="text-gray-700 text-lg">We work to ensure equal access to quality, comprehensive healthcare and fully inclusive education systems. This means fighting for necessary accommodations, assistive devices, and teacher training to support diverse learning needs.</p>
-                    </div>
-                </div>
-                <div className="flex flex-col md:flex-row bg-white rounded-xl shadow-lg p-6 md:p-10 border-l-4 border-red-600">
-                    <div className="md:w-1/3 flex-shrink-0 mb-4 md:mb-0">
-                        <h3 className="text-2xl font-extrabold text-red-700">4. Policy & Leadership</h3>
-                    </div>
-                    <div className="md:w-2/3 md:pl-10">
-                        <p className="text-gray-700 text-lg">We promote the involvement of PWDs in all decision-making processes ("Nothing About Us Without Us"). We track legislation and mobilize communities to influence policy reforms that affect disability rights.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-);
-
-// --- Full Page Components ---
-
-const HomePage = ({ setPage }) => (
-    <>
-        <HeroSection setPage={setPage} />
-        <MissionSection />
-        <PillarsSection />
-    </>
-);
-
-const ResourcesPage = ({ setPage }) => {
-    const documents = [
-        { title: "UN Convention on the Rights of PWDs (CRPD)", description: "The core international human rights treaty defining the rights of people with disabilities worldwide.", link: "#" },
-        { title: "WCAG Accessibility Guidelines", description: "The technical standard for digital accessibility. Essential for all web developers and content creators.", link: "#" },
-        { title: "Local Advocacy & DPO Directory", description: "A list of local Disabled Persons' Organizations (DPOs) and regional advocacy groups near you.", link: "#" },
-        { title: "Guide to Accessible Voting", description: "Information on state and federal laws ensuring accessible polling places and voting methods.", link: "#" },
-        { title: "Employment Rights: ADA Title I", description: "Detailed summary of employer obligations and employee rights under the Americans with Disabilities Act.", link: "#" },
-        { title: "Inclusive Education IEP/504 Handbook", description: "A comprehensive guide for parents and educators on creating effective Individualized Education Programs.", link: "#" },
-    ];
-    
-    // Using static content now that AI functionality is removed
-    const staticContent = STATIC_ADVOCACY_CONTENT;
-
-    return (
-        <section id="resources-page" className="py-16 sm:py-24">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="lg:text-center mb-12">
-                    <h2 className="text-base text-red-700 font-semibold tracking-wide uppercase">Deep Dive Documents</h2>
-                    <p className="mt-2 text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
-                        Essential Policy and Legal Resources
-                    </p>
-                    <p className="mt-4 max-w-4xl lg:mx-auto text-xl text-gray-600">
-                        Access our curated library of the most important legislative acts, international treaties, and practical guides that empower PWDs and advocates.
-                    </p>
-                </div>
-                
-                {/* --- Static Advocacy Updates & Training --- */}
-                <div className="my-16 p-8 bg-gray-100 rounded-xl shadow-inner border-t-4 border-red-600" aria-label="Advocacy Updates Section">
-                    <h2 className="text-3xl font-extrabold text-gray-900 mb-6 flex items-center">
-                        <NewsIcon /> Current Advocacy Headlines & Trainings
-                    </h2>
-                    
-                    {/* Display Static Content */}
-                    {staticContent && (
-                        <>
-                            {/* Latest News Summary */}
-                            <div className="mb-8">
-                                <h3 className="text-xl font-bold text-gray-800 mb-2 border-b border-red-300 pb-1">Global Advocacy Headlines</h3>
-                                <p className="text-gray-700">{staticContent.newsSummary}</p>
-                            </div>
-
-                            {/* Trainings Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div>
-                                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center"><TrainingIcon /> Global Training Opportunities</h3>
-                                    <ul className="space-y-4" role="list">
-                                        {staticContent.globalTrainings.map((t, i) => (
-                                            <li key={`gt-${i}`} className="p-4 bg-white rounded-lg shadow-md" aria-labelledby={`global-title-${i}`}>
-                                                <p id={`global-title-${i}`} className="font-semibold text-red-700">{t.title}</p>
-                                                <p className="text-sm text-gray-600 mb-2">{t.summary}</p>
-                                                <a href={t.link} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-800 text-sm inline-flex items-center" aria-label={`View details for training: ${t.title} (opens in new tab)`}>
-                                                    View Details <LinkIcon />
-                                                </a>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center"><TrainingIcon /> Kenya-Specific Trainings</h3>
-                                    <ul className="space-y-4" role="list">
-                                        {staticContent.kenyaTrainings.map((t, i) => (
-                                            <li key={`kt-${i}`} className="p-4 bg-white rounded-lg shadow-md" aria-labelledby={`kenya-title-${i}`}>
-                                                <p id={`kenya-title-${i}`} className="font-semibold text-red-700">{t.title}</p>
-                                                <p className="text-sm text-gray-600 mb-2">{t.summary}</p>
-                                                <a href={t.link} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-800 text-sm inline-flex items-center" aria-label={`View details for training: ${t.title} (opens in new tab)`}>
-                                                    View Details <LinkIcon />
-                                                </a>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            </div>
-                        </>
-                    )}
-                </div>
-
-                {/* Static Documents */}
-                <h3 className="text-3xl font-extrabold text-gray-900 mt-16 mb-8 border-t pt-8">Static Legal Documents</h3>
-                <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {documents.map((doc, index) => (
-                        <article key={index} className="bg-white border-2 border-gray-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition duration-300">
-                            <h3 className="text-xl font-bold text-red-700 mb-2">{doc.title}</h3>
-                            <p className="text-gray-600 mb-4">{doc.description}</p>
-                            <a href={doc.link} className="text-red-600 font-semibold hover:text-red-700 inline-flex items-center" aria-label={`View the ${doc.title} document`}>
-                                View Document
-                                <LinkArrow />
-                            </a>
-                        </article>
-                    ))}
-                </div>
-                
-                <div className="mt-16 text-center">
-                    <button
-                        onClick={() => setPage(PAGES.GET_INVOLVED)}
-                        className="px-8 py-3 border border-transparent text-lg font-medium rounded-lg text-white bg-red-700 hover:bg-red-800 transition duration-300 shadow-xl"
-                        role="button"
-                    >
-                        Need Legal Help? Contact Our Advocacy Team
-                    </button>
-                </div>
-            </div>
-        </section>
-    );
-};
-
-const TherapiesPage = () => {
-    // Consolidated list of therapeutic and coaching services
-    const services = [
-        // --- Traditional Therapies ---
-        { type: "Therapy", title: "Physical Therapy (PT)", icon: PhysicalTherapyIcon, description: "Aims to restore or improve physical mobility, strength, and function. Crucial for managing chronic pain and post-operative recovery." },
-        { type: "Therapy", title: "Occupational Therapy (OT)", icon: OccupationalTherapyIcon, description: "Focuses on adapting the environment and teaching skills for daily living (ADLs), employment, and leisure activities, maximizing independence." },
-        { type: "Therapy", title: "Speech-Language Pathology (SLP)", icon: SpeechTherapyIcon, description: "Addresses communication challenges, language comprehension, social communication, and difficulties with swallowing (dysphagia)." },
-        { type: "Therapy", title: "Mental Health Support", icon: MentalHealthIcon, description: "Provides counseling, psychological support, and coping strategies to address emotional well-being, stress, anxiety, and depression." },
-        
-        // --- Coaching Services (New) ---
-        { type: "Coaching", title: "Independent Life Coaching", icon: CoachingIcon, description: "Focuses on personal goal setting, self-advocacy, time management, and building confidence for living independently." },
-        { type: "Coaching", title: "Career & Employment Coaching", icon: CoachingIcon, description: "Specialized support for job seeking, preparing for interviews, workplace accommodation navigation, and long-term career planning." },
-        { type: "Coaching", title: "Peer Support Coaching", icon: CoachingIcon, description: "Connects individuals with experienced mentors who share similar disabilities, offering emotional support, coping strategies, and shared knowledge." },
-        { type: "Coaching", title: "Family & Caregiver Coaching", icon: CoachingIcon, description: "Provides guidance and strategies to family members to support the PWD, focusing on communication, stress reduction, and resource navigation." },
-        
-        // --- Specialized Therapies ---
-        { type: "Specialized", title: "Assistive Technology Training", icon: AccessibilityIcon, description: "Specialized training to master devices and software that enhance communication, mobility, and digital access." },
-        { type: "Specialized", title: "Aquatic Therapy (Hydrotherapy)", icon: PhysicalTherapyIcon, description: "Using water's buoyancy and resistance for rehabilitation exercises, often benefiting individuals with severe joint pain or limited mobility." },
-    ];
-    
-    // Separate services for clear section headers
-    const traditionalServices = services.filter(s => s.type === 'Therapy' || s.type === 'Specialized');
-    const coachingServices = services.filter(s => s.type === 'Coaching');
-
-    return (
-        <section id="therapies-page" className="py-16 sm:py-24 bg-gray-100">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="lg:text-center mb-12">
-                    <h2 className="text-base text-red-700 font-semibold tracking-wide uppercase">Comprehensive Care</h2>
-                    <p className="mt-2 text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
-                        Rehabilitation, Psychological Support, and Coaching
-                    </p>
-                    <p className="mt-4 max-w-4xl lg:mx-auto text-xl text-gray-600">
-                        We advocate for affordable and inclusive access to the services necessary for personal growth, independence, and well-being.
-                    </p>
-                </div>
-
-                {/* --- Coaching Section --- */}
-                <h3 className="text-3xl font-extrabold text-gray-900 mt-16 mb-8 border-b border-red-300 pb-3 flex items-center">
-                    <CoachingIcon /> Professional Coaching Services
-                </h3>
-                <p className="max-w-4xl text-lg text-gray-700 mb-10">
-                    Coaching is non-clinical, forward-looking support tailored to help PWDs set goals, develop skills, and navigate personal or professional challenges to maximize autonomy.
-                </p>
-
-                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                    {coachingServices.map((service, index) => (
-                        <div key={index} className="p-6 bg-white rounded-xl shadow-lg border-t-4 border-red-600 hover:shadow-2xl transition duration-300 transform hover:scale-[1.03]">
-                            <service.icon />
-                            <h4 className="text-xl font-bold text-red-700 mb-2">{service.title}</h4>
-                            <p className="text-gray-600 text-sm">{service.description}</p>
-                            <a href="#" className="mt-4 inline-block text-red-700 font-semibold text-sm hover:text-red-800" aria-label={`Find local providers for ${service.title}`}>
-                                Connect with a Coach &rarr;
-                            </a>
-                        </div>
-                    ))}
-                </div>
-
-                {/* --- Traditional Therapies Section --- */}
-                <h3 className="text-3xl font-extrabold text-gray-900 mt-16 mb-8 border-b border-red-300 pb-3">
-                    Clinical and Rehabilitative Therapies
-                </h3>
-                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {traditionalServices.map((service, index) => (
-                        <div key={index} className="p-6 bg-white rounded-xl shadow-lg border-t-4 border-red-600 hover:shadow-2xl transition duration-300 transform hover:scale-[1.03]">
-                            <service.icon />
-                            <h4 className="text-xl font-bold text-red-700 mb-2">{service.title}</h4>
-                            <p className="text-gray-600 text-sm">{service.description}</p>
-                            <a href="#" className="mt-4 inline-block text-red-700 font-semibold text-sm hover:text-red-800" aria-label={`Find local providers for ${service.title}`}>
-                                Find Local Providers &rarr;
-                            </a>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </section>
-    );
-};
-
-// FIX: Corrected function definition syntax to ensure proper compilation
-const ResearchPage = () => (
-    <section id="research-page" className="py-16 sm:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="lg:text-center mb-12">
-                <h2 className="text-base text-red-700 font-semibold tracking-wide uppercase">Data-Driven Advocacy</h2>
-                <p className="mt-2 text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
-                    Research for Inclusion and Equity
-                </p>
-                <p className="mt-4 max-w-4xl lg:mx-auto text-xl text-gray-600">
-                    Our studies generate evidence to expose systemic barriers, influence policy, and drive meaningful, measurable change for the PWD community.
-                </p>
-            </div>
-
-            <div className="mt-16 space-y-16">
-                {/* Current Studies */}
-                <div className="bg-gray-100 p-8 rounded-xl shadow-inner border-t-4 border-red-600">
-                    <h3 className="text-3xl font-extrabold text-gray-900 mb-6 flex items-center">
-                        <ResearchIcon /> Current Studies
-                    </h3>
-                    <div className="space-y-6">
-                        <article className="p-4 bg-white rounded-lg shadow border-l-4 border-red-700">
-                            <h4 className="font-semibold text-xl text-red-700 mb-1">Digital Accessibility Audit 2024: Kenya</h4>
-                            <p className="text-gray-700 text-sm">Analyzing the WCAG compliance of the top 50 government and public service websites in Kenya to identify key digital exclusion points. (Est. completion: Q4 2024)</p>
-                            <a href="#" className="text-red-600 text-sm mt-2 inline-flex items-center hover:text-red-800" aria-label="View the methodology for the Digital Accessibility Audit">
-                                View Methodology <LinkIcon />
-                            </a>
-                        </article>
-                        <article className="p-4 bg-white rounded-lg shadow border-l-4 border-red-700">
-                            <h4 className="font-semibold text-xl text-red-700 mb-1">Impact of Peer Coaching on Employment Rates</h4>
-                            <p className="text-gray-700 text-sm">A longitudinal study assessing how sustained peer support coaching affects job retention and career advancement for recent PWD graduates. (Ongoing enrollment)</p>
-                            <a href="#" className="text-red-600 text-sm mt-2 inline-flex items-center hover:text-red-800" aria-label="Learn how to participate in the Peer Coaching Impact Study">
-                                Get Involved <LinkIcon />
-                            </a>
-                        </article>
-                    </div>
-                </div>
-
-                {/* Publications */}
-                <div className="mt-16">
-                    <h3 className="text-3xl font-extrabold text-gray-900 mb-6 border-b border-gray-300 pb-3">
-                        Recent Publications & Reports
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <article className="p-6 bg-white rounded-xl shadow-lg border-t-4 border-gray-300">
-                            <p className="text-sm text-gray-500">June 2024</p>
-                            <h4 className="font-bold text-red-700 text-lg my-1">The Cost of Exclusion Report</h4>
-                            <p className="text-gray-600 text-sm mb-3">Economic analysis of lost GDP due to employment and educational barriers for PWDs.</p>
-                            <a href="#" className="text-red-600 font-semibold text-sm inline-flex items-center hover:text-red-800" aria-label="Download the full report on The Cost of Exclusion">
-                                Download PDF <LinkIcon />
-                            </a>
-                        </article>
-                        <article className="p-6 bg-white rounded-xl shadow-lg border-t-4 border-gray-300">
-                            <p className="text-sm text-gray-500">April 2024</p>
-                            <h4 className="font-bold text-red-700 text-lg my-1">Healthcare Access Policy Brief</h4>
-                            <p className="text-gray-600 text-sm mb-3">Policy recommendations for improving availability and affordability of rehabilitation services in rural areas.</p>
-                            <a href="#" className="text-red-600 font-semibold text-sm inline-flex items-center hover:text-red-800" aria-label="Read the Healthcare Access Policy Brief">
-                                Read Online <LinkIcon />
-                            </a>
-                        </article>
-                        <article className="p-6 bg-white rounded-xl shadow-lg border-t-4 border-gray-300">
-                            <p className="text-sm text-gray-500">February 2024</p>
-                            <h4 className="font-bold text-red-700 text-lg my-1">Voices of Young Advocates</h4>
-                            <p className="text-gray-600 text-sm mb-3">Qualitative study capturing the experiences of PWD youth navigating post-secondary education.</p>
-                            <a href="#" className="text-red-600 font-semibold text-sm inline-flex items-center hover:text-red-800" aria-label="View the Voices of Young Advocates report">
-                                View Summary <LinkIcon />
-                            </a>
-                        </article>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-);
-
-const EQUIPMENT_COLLECTION_PATH = (appId) => (`artifacts/${appId}/public/data/equipmentExchange`);
-
-const EquipmentExchangePage = ({ db, userId, appId }) => {
-    // State for equipment management
-    const [donations, setDonations] = useState([]);
-    const [requests, setRequests] = useState([]);
-    const [formStatus, setFormStatus] = useState(null);
-
-    // Placeholder data for demonstration
-    const mockDonation = { name: "Manual Wheelchair (Like New)", condition: "Excellent", donor: userId };
-    const mockRequest = { item: "Speech-to-Text Software License", applicant: userId, disabilityType: "Hearing Impairment" };
-
-    const EQUIPMENT_COLLECTION = EQUIPMENT_COLLECTION_PATH(appId);
-
-    // 2. Fetch Donations and Requests using onSnapshot (Real-time listening)
-    useEffect(() => {
-        if (!db) return;
-
-        // Query to fetch all public equipment items
-        const donationsRef = collection(db, EQUIPMENT_COLLECTION);
-        
-        // Listen for real-time updates on donations
-        const unsubscribeDonations = onSnapshot(query(donationsRef), (snapshot) => {
-            const fetchedDonations = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            })).filter(item => item.type === 'donation'); // Filter for donations
-            setDonations(fetchedDonations);
-        }, (error) => {
-            console.error("Error listening to donations:", error);
-        });
-
-        // Listen for real-time updates on requests (using the same collection path)
-        const unsubscribeRequests = onSnapshot(query(donationsRef), (snapshot) => {
-            const fetchedRequests = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            })).filter(item => item.type === 'request'); // Filter for requests
-            setRequests(fetchedRequests);
-        }, (error) => {
-            console.error("Error listening to requests:", error);
-        });
-
-        // Cleanup subscription on unmount
-        return () => {
-            unsubscribeDonations();
-            unsubscribeRequests();
-        };
-    }, [db, EQUIPMENT_COLLECTION]);
-
-    // Function to handle donation submission (MOCK)
-    const handleAddDonation = async () => {
-        if (!db || !userId) {
-            setFormStatus({ type: 'error', message: "Please wait for user authentication to complete." });
-            return;
-        }
-
-        try {
-            const docRef = await addDoc(collection(db, EQUIPMENT_COLLECTION), {
-                ...mockDonation,
-                type: 'donation',
-                status: 'Available',
-                timestamp: new Date().toISOString(),
-                donorId: userId // Link to the current user
-            });
-            setFormStatus({ type: 'success', message: `Donation added! ID: ${docRef.id}. Check the available list below.` });
-        } catch (e) {
-            console.error("Error adding donation: ", e);
-            setFormStatus({ type: 'error', message: "Failed to submit donation due to a database error." });
-        }
-    };
-
-    // Function to handle request submission (MOCK)
-    const handleAddRequest = async () => {
-        if (!db || !userId) {
-            setFormStatus({ type: 'error', message: "Please wait for user authentication to complete." });
-            return;
-        }
-
-        try {
-            const docRef = await addDoc(collection(db, EQUIPMENT_COLLECTION), {
-                ...mockRequest,
-                type: 'request',
-                status: 'Pending',
-                timestamp: new Date().toISOString(),
-                applicantId: userId // Link to the current user
-            });
-            setFormStatus({ type: 'success', message: `Request submitted! ID: ${docRef.id}. We will notify you when a match is found.` });
-        } catch (e) {
-            console.error("Error submitting request: ", e);
-            setFormStatus({ type: 'error', message: "Failed to submit request due to a database error." });
-        }
-    };
-
-
-    // Helper function to render card based on status/type
-    const renderCard = (item, type) => (
-        <div key={item.id} className="p-4 bg-white rounded-lg shadow-md border-t-4 border-red-600">
-            <p className="font-bold text-red-700">{type === 'donation' ? item.name : item.item}</p>
-            <p className="text-sm text-gray-700">Condition: {item.condition || 'N/A'}</p>
-            <p className="text-xs text-gray-500 mt-2">Status: <span className={`font-semibold ${item.status === 'Available' ? 'text-green-600' : 'text-yellow-600'}`}>{item.status}</span></p>
-            <p className="text-xs text-gray-500 truncate mt-1" title={item.donorId || item.applicantId}>User: {item.donorId || item.applicantId}</p>
-        </div>
     );
 
-    return (
-        <section id="exchange-page" className="py-16 sm:py-24 bg-gray-100">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="lg:text-center mb-12">
-                    <h2 className="text-base text-red-700 font-semibold tracking-wide uppercase">Community Support</h2>
-                    <p className="mt-2 text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
-                        Assistive Equipment Exchange
-                    </p>
-                    <p className="mt-4 max-w-4xl lg:mx-auto text-xl text-gray-600">
-                        Donate pre-owned equipment to those in need, or request the items essential for independence. All allocations are matched automatically.
-                    </p>
+    if (view === 'donate_step2') return (
+        <div className="py-24 max-w-2xl mx-auto px-6 animate-in slide-in-from-right-8 duration-500">
+            <h2 className="text-4xl font-black text-slate-950 mb-10 uppercase tracking-tighter text-center leading-none">DEVICE MANIFEST</h2>
+            <div className="bg-white p-8 lg:p-12 rounded-[2rem] border border-slate-100 shadow-xl space-y-8">
+                <div className="flex items-center space-x-3 mb-2">
+                    <CheckCircle2 className="text-green-500 w-5 h-5" />
+                    <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Category: {selectedType}</p>
                 </div>
-
-                {/* Form Status Message */}
-                {formStatus && (
-                    <div className={`p-4 mb-8 rounded-lg ${formStatus.type === 'success' ? 'bg-green-100 text-green-700 border-green-400' : 'bg-red-100 text-red-700 border-red-400'} border`} role="alert">
-                        <p className="font-semibold">{formStatus.message}</p>
-                    </div>
-                )}
-                
-                {/* Donation/Request Forms (MOCK) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-                    <div className="p-8 bg-white rounded-xl shadow-lg border-t-4 border-red-700">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4">I Want to Donate Equipment</h3>
-                        <p className="text-gray-600 mb-6">Click below to simulate donating a **Manual Wheelchair**. This will add it to the 'Available Donations' list below in real-time.</p>
-                        <button
-                            onClick={handleAddDonation}
-                            className="w-full px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-red-700 hover:bg-red-800 transition duration-300 shadow-md"
-                            aria-label="Simulate adding a wheelchair donation"
-                        >
-                            Simulate Donate Wheelchair
-                        </button>
-                    </div>
-
-                    <div className="p-8 bg-white rounded-xl shadow-lg border-t-4 border-red-700">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4">I Need Equipment</h3>
-                        <p className="text-gray-600 mb-6">Click below to simulate requesting **Speech-to-Text Software**. This will add it to the 'Pending Requests' list.</p>
-                        <button
-                            onClick={handleAddRequest}
-                            className="w-full px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-gray-600 hover:bg-gray-700 transition duration-300 shadow-md"
-                            aria-label="Simulate requesting speech-to-text software"
-                        >
-                            Simulate Request Item
-                        </button>
-                    </div>
-                </div>
-
-                {/* Live Data Sections */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                    {/* Available Donations */}
-                    <div>
-                        <h3 className="text-3xl font-extrabold text-gray-900 mb-6 flex items-center">
-                            Available Donations ({donations.length})
-                        </h3>
-                        <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                            {donations.length > 0 ? (
-                                donations.map(d => renderCard(d, 'donation'))
-                            ) : (
-                                <p className="text-gray-500">No donations available yet. Try simulating a donation!</p>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Pending Requests */}
-                    <div>
-                        <h3 className="text-3xl font-extrabold text-gray-900 mb-6 flex items-center">
-                            Pending Requests ({requests.length})
-                        </h3>
-                        <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                            {requests.length > 0 ? (
-                                requests.map(r => renderCard(r, 'request'))
-                            ) : (
-                                <p className="text-gray-500">No requests pending. Try simulating a request!</p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    );
-};
-
-// FIX 1: Corrected Firestore collection path to be private data for the Get Involved Form
-const CONTACTS_COLLECTION_PATH = (appId, userId) => (`artifacts/${appId}/users/${userId}/contacts`);
-
-// --- Get Involved Form Component (NEW) ---
-const GetInvolvedForm = ({ db, userId, appId }) => {
-    const [formData, setFormData] = useState({
-        role: 'PWD', // Default role
-        email: '',
-        phone: '',
-        address: '',
-    });
-    const [status, setStatus] = useState(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const CONTACTS_COLLECTION = CONTACTS_COLLECTION_PATH(appId, userId);
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-        setStatus(null);
-
-        if (!db || !userId) {
-            setStatus({ type: 'error', message: "Authentication not ready. Please wait a moment." });
-            setIsSubmitting(false);
-            return;
-        }
-
-        const requiredFields = [formData.email, formData.phone, formData.address];
-        if (requiredFields.every(field => field.trim() === '')) {
-            setStatus({ type: 'error', message: "Please provide at least one contact method (Email, Phone, or Address)." });
-            setIsSubmitting(false);
-            return;
-        }
-
-        try {
-            await addDoc(collection(db, CONTACTS_COLLECTION), {
-                ...formData,
-                timestamp: new Date().toISOString(),
-                userId: userId,
-            });
-            setStatus({ type: 'success', message: `Thank you for signing up as a ${formData.role}! We'll be in touch.` });
-            setFormData({
-                role: formData.role, 
-                email: '', 
-                phone: '', 
-                address: ''
-            });
-        } catch (e) {
-            console.error("Error submitting contact info: ", e);
-            setStatus({ type: 'error', message: "Submission failed due to a database error." });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-    
-    const inputClasses = "w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-gray-900";
-    const labelClasses = "block text-sm font-medium text-gray-200 mb-1 mt-3";
-
-    return (
-        <section id="sign-up-form" className="py-20 bg-red-700 text-white rounded-t-2xl">
-            <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
-                    Join the Tenda Care Community
-                </h2>
-                <p className="text-xl text-red-200 mb-10">
-                    Sign up to receive specialized support, news, and opportunities tailored to your role.
-                </p>
-
-                {status && (
-                    <div className={`p-4 mb-6 rounded-lg font-semibold ${status.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-800 text-white'}`} role="alert">
-                        {status.message}
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="bg-red-800 p-8 rounded-xl shadow-2xl space-y-4">
-                    <div className="mb-6">
-                        <label className="block text-xl font-bold mb-3">I am a:</label>
-                        <div className="flex justify-center space-x-6">
-                            <label className="flex items-center space-x-2 cursor-pointer p-3 bg-red-700 rounded-lg hover:bg-red-600 transition duration-150">
-                                <input
-                                    type="radio"
-                                    name="role"
-                                    value="PWD"
-                                    checked={formData.role === 'PWD'}
-                                    onChange={handleChange}
-                                    className="h-5 w-5 text-white border-white bg-red-700 focus:ring-red-500"
-                                    aria-label="I am a Person with a Disability"
-                                />
-                                <span className="font-semibold">Person with a Disability (PWD)</span>
-                            </label>
-                            <label className="flex items-center space-x-2 cursor-pointer p-3 bg-red-700 rounded-lg hover:bg-red-600 transition duration-150">
-                                <input
-                                    type="radio"
-                                    name="role"
-                                    value="Caregiver"
-                                    checked={formData.role === 'Caregiver'}
-                                    onChange={handleChange}
-                                    className="h-5 w-5 text-white border-white bg-red-700 focus:ring-red-500"
-                                    aria-label="I am a Parent or Caregiver"
-                                />
-                                <span className="font-semibold">Parent / Caregiver</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label htmlFor="email" className={labelClasses}>Email Address</label>
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            className={inputClasses}
-                            placeholder="e.g., yourname@example.com"
-                            aria-describedby="email-help"
-                        />
-                        <p id="email-help" className="text-xs text-red-200 text-left mt-1">We respect your privacy.</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="phone" className={labelClasses}>Phone Number</label>
-                            <input
-                                type="tel"
-                                id="phone"
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleChange}
-                                className={inputClasses}
-                                placeholder="e.g., +254 7XX XXX XXX"
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="address" className={labelClasses}>Home Address (Optional)</label>
-                            <input
-                                type="text"
-                                id="address"
-                                name="address"
-                                value={formData.address}
-                                onChange={handleChange}
-                                className={inputClasses}
-                                placeholder="For local services/equipment delivery"
-                            />
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full mt-6 px-6 py-3 border border-transparent text-lg font-medium rounded-lg text-gray-900 bg-white hover:bg-gray-200 transition duration-300 shadow-xl disabled:opacity-50"
-                        aria-label={isSubmitting ? "Submitting..." : "Sign Up for Community Support"}
-                    >
-                        {isSubmitting ? 'Submitting...' : 'Sign Up for Tenda Care'}
+                <form className="space-y-6" onSubmit={(e) => { 
+                    e.preventDefault(); 
+                    const name = e.target.elements.name.value; 
+                    setItems([{id: Date.now().toString(), type: 'donation', name, deviceType: selectedType, condition: 'Good', donor: "You", timestamp: new Date().toISOString()}, ...items]); 
+                    setNotif({msg: "Global inventory updated.", type: "success"}); 
+                    setView('list'); 
+                }}>
+                    <input name="name" placeholder="Item Nomenclature (e.g. Model X)" className="w-full p-5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold focus:border-red-500 transition-all text-base" required />
+                    <select className="w-full p-5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-base appearance-none cursor-pointer focus:border-red-500">
+                        <option>Condition: Mint / Boxed</option>
+                        <option>Condition: Minimal Wear</option>
+                        <option>Condition: Restored / Functional</option>
+                    </select>
+                    <textarea placeholder="Describe condition and features..." className="w-full p-5 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none font-medium text-base leading-relaxed h-32 focus:border-red-500" required></textarea>
+                    <button type="submit" className="w-full py-5 bg-red-700 text-white font-black rounded-full uppercase tracking-[0.2em] text-xs shadow-lg hover:bg-red-800 transition-all">
+                        DEPLOY TO EXCHANGE
                     </button>
                 </form>
+            </div>
+        </div>
+    );
 
-                <p className="mt-8 text-sm text-red-200">Your current, temporary Tenda Care ID is: <span className="font-mono">{userId}</span></p>
+    return (
+        <section className="py-24 bg-slate-50 px-6 min-h-screen text-left">
+            <div className="max-w-7xl mx-auto">
+                <div className="max-w-3xl mb-20">
+                    <p className="text-red-700 font-black tracking-widest uppercase mb-3 text-xs">Community Logistics</p>
+                    <h2 className="text-5xl lg:text-7xl font-black text-slate-950 uppercase tracking-tighter leading-[0.9] mb-8">The <br />Exchange</h2>
+                    <p className="text-lg text-slate-500 font-medium leading-relaxed italic opacity-80 uppercase tracking-widest text-[10px]">Zero-barrier assistive technology matching</p>
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-6 mb-24">
+                    <div className="bg-white p-10 rounded-[2rem] shadow-sm flex flex-col items-center text-center group border border-slate-100 hover:border-red-100 hover:-translate-y-1 transition-all">
+                        <div className="w-16 h-16 bg-red-50 text-red-700 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-red-700 group-hover:text-white transition-all">
+                            <Heart className="w-8 h-8" />
+                        </div>
+                        <h3 className="text-3xl font-black text-slate-950 mb-4 uppercase tracking-tight leading-none">Donate Asset</h3>
+                        <p className="text-slate-500 font-medium mb-8 max-w-xs leading-relaxed text-sm">Gift your pre-loved assistive tools to a community member in need.</p>
+                        <button onClick={() => setView('donate_step1')} className="w-full py-4 bg-red-700 text-white rounded-full font-black uppercase tracking-[0.2em] text-xs shadow-md hover:bg-red-800 transition-all">
+                            START DONATION
+                        </button>
+                    </div>
+                    <div className="bg-slate-950 p-10 rounded-[2rem] shadow-xl flex flex-col items-center text-center text-white group hover:-translate-y-1 transition-all">
+                        <div className="w-16 h-16 bg-white/5 text-red-500 rounded-2xl flex items-center justify-center mb-6">
+                            <Search className="w-8 h-8" />
+                        </div>
+                        <h3 className="text-3xl font-black mb-4 uppercase tracking-tight leading-none">Acquire Tool</h3>
+                        <p className="text-slate-400 font-medium mb-8 max-w-xs leading-relaxed text-sm">Browse our live inventory of verified assistive technology.</p>
+                        <div className="w-full relative">
+                            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." className="w-full py-4 px-6 bg-white/10 rounded-full text-center outline-none border border-white/20 focus:border-red-500 transition-colors font-bold text-sm text-white placeholder:text-white/40" />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid lg:grid-cols-5 gap-8">
+                    <div className="lg:col-span-3 bg-white p-8 lg:p-10 rounded-[2rem] h-[600px] flex flex-col shadow-sm border border-slate-100">
+                        <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-100">
+                            <h3 className="text-2xl font-black uppercase tracking-tighter leading-none text-slate-950">Live Stock</h3>
+                            <span className="px-4 py-1.5 bg-slate-100 rounded-full text-[10px] font-black text-slate-500 tracking-widest uppercase">{filtered.length} Items</span>
+                        </div>
+                        <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-grow">
+                        {filtered.length === 0 ? (
+                            <p className="text-center text-slate-400 font-medium italic mt-10">No items match your search.</p>
+                        ) : (
+                            filtered.map(d => (
+                                <div key={d.id} className="p-6 bg-slate-50 rounded-2xl flex justify-between items-center border border-transparent hover:border-slate-200 transition-all">
+                                    <div className="max-w-[65%]">
+                                        <p className="font-black text-lg tracking-tight uppercase text-slate-950 mb-1 truncate">{d.name}</p>
+                                        <p className="text-[9px] font-black uppercase text-red-700 tracking-widest truncate">{d.deviceType}</p>
+                                    </div>
+                                    <button onClick={() => setNotif({msg: `Claim request for ${d.name} logged.`, type: "success"})} className="px-6 py-3 bg-slate-950 text-white font-black text-[10px] rounded-full hover:bg-red-700 transition-all uppercase tracking-[0.2em]">CLAIM</button>
+                                </div>
+                            ))
+                        )}
+                        </div>
+                    </div>
+                    <div className="lg:col-span-2 bg-slate-950 p-10 rounded-[2rem] text-white text-center shadow-xl flex flex-col justify-center items-center">
+                        <div className="relative mb-8">
+                            <Users className="w-20 h-20 text-red-700 opacity-20 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-[1.5]" />
+                            <p className="text-7xl font-black leading-none tracking-tighter text-white">142</p>
+                        </div>
+                        <h3 className="text-2xl font-black uppercase tracking-tight mb-4 leading-tight">OPEN COMMUNITY REQUESTS</h3>
+                        <p className="text-slate-400 font-medium text-sm mb-8 leading-relaxed">Needy members awaiting allocation.</p>
+                        <button onClick={() => setView('donate_step1')} className="w-full py-4 bg-white text-slate-950 font-black rounded-full uppercase tracking-[0.2em] text-xs shadow-md hover:bg-red-700 hover:text-white transition-all">
+                            HELP A NEIGHBOR
+                        </button>
+                    </div>
+                </div>
             </div>
         </section>
     );
 };
 
+const GetInvolvedPage = ({ setNotif }) => {
+    const [view, setView] = useState('choice');
+    const [role, setRole] = useState("");
+    const roles = [
+        { title: "Legal Counsel", sub: "Pro-bono policy review.", color: "bg-red-700" },
+        { title: "Corporate Lead", sub: "Equity & DEI initiatives.", color: "bg-slate-800" },
+        { title: "Tech Architect", sub: "Accessibility engineering.", color: "bg-red-950" },
+        { title: "Global Lobbyist", sub: "International advocacy.", color: "bg-black" }
+    ];
 
-// --- Main App Component ---
+    if (view === 'signup') return (
+        <div className="bg-slate-950 py-24 min-h-screen text-white flex items-center px-6 animate-in zoom-in-95 duration-500">
+            <div className="max-w-5xl mx-auto grid lg:grid-cols-2 gap-16 items-center w-full">
+                <div className="text-center lg:text-left">
+                    <span className="text-red-500 font-black uppercase tracking-[0.3em] text-[10px] mb-6 block">Candidate Induction</span>
+                    <h2 className="text-5xl lg:text-7xl font-black mb-8 leading-[0.9] tracking-tighter uppercase">JOIN AS <br /><span className="text-red-700 italic">{role}</span></h2>
+                    <div className="hidden lg:block w-16 h-1 bg-red-700 rounded-full mb-8"></div>
+                    <p className="text-lg text-slate-400 font-medium italic opacity-80 max-w-sm mx-auto lg:mx-0">"The only way to achieve inclusion is through collective force."</p>
+                </div>
+                <div className="bg-white p-8 lg:p-12 rounded-[2rem] text-slate-950 space-y-6 text-left w-full shadow-2xl">
+                    <div>
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Identity Details</label>
+                        <input placeholder="Full Legal Name" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-red-500 transition-colors outline-none" required />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Communication</label>
+                        <input placeholder="Professional Email" type="email" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-red-500 transition-colors outline-none" required />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Mission Statement</label>
+                        <textarea placeholder="Briefly describe your focus..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none font-medium h-32 focus:border-red-500 transition-colors"></textarea>
+                    </div>
+                    <button onClick={() => { setNotif({msg: "Induction request logged.", type: "success"}); setView('choice'); }} className="w-full py-5 bg-red-700 text-white font-black rounded-full uppercase tracking-[0.2em] text-xs shadow-lg hover:bg-red-800 transition-all mt-4">
+                        FINISH ENROLLMENT
+                    </button>
+                    <button onClick={() => setView('choice')} className="w-full text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-red-700 text-center transition-colors mt-2">Go Back</button>
+                </div>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="bg-red-700 py-24 min-h-screen text-white text-center flex items-center relative overflow-hidden">
+            <Globe className="absolute -right-40 -top-40 w-[600px] h-[600px] text-white/5 rotate-12" />
+            <div className="max-w-7xl mx-auto px-6 relative z-10 w-full">
+                <h2 className="text-6xl lg:text-[10rem] font-black mb-12 tracking-tighter uppercase leading-[0.8]">JOIN THE <br />FORCE</h2>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {roles.map((r, i) => (
+                    <button key={i} onClick={() => { setRole(r.title); setView('signup'); }} className={`${r.color} p-8 lg:p-10 rounded-[2rem] text-left group hover:-translate-y-2 transition-all shadow-xl flex flex-col justify-between min-h-[300px] relative border border-white/10`}>
+                        <div>
+                            <h3 className="text-3xl font-black mb-4 leading-tight uppercase tracking-tighter text-white">{r.title.split(' ')[0]} <br />{r.title.split(' ')[1]}</h3>
+                            <p className="text-white/60 font-bold text-[10px] uppercase tracking-widest">{r.sub}</p>
+                        </div>
+                        <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center text-slate-950 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-md mt-8">
+                            <ArrowRight className="w-6 h-6" />
+                        </div>
+                    </button>
+                ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- Main App ---
 
 const App = () => {
     const [currentPage, setCurrentPage] = useState(PAGES.HOME);
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    
-    // --- Firebase State ---
-    const [db, setDb] = useState(null);
-    const [auth, setAuth] = useState(null);
-    const [userId, setUserId] = useState(null);
     const [isAuthReady, setIsAuthReady] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [notif, setNotif] = useState(null);
+    const [equipmentItems, setEquipmentItems] = useState(INITIAL_MOCK_EQUIPMENT);
 
-    // 1. Initialize Firebase and Authenticate User
     useEffect(() => {
-        try {
-            // Set Firestore log level for debugging (optional but recommended)
-            setLogLevel('Debug');
-            
-            const app = initializeApp(firebaseConfig);
-            const firestore = getFirestore(app);
-            const authInstance = getAuth(app);
-            
-            setDb(firestore);
-            setAuth(authInstance);
+        const timer = setTimeout(() => setIsAuthReady(true), 800);
+        return () => clearTimeout(timer);
+    }, []);
 
-            const unsubscribe = onAuthStateChanged(authInstance, (user) => {
-                if (user) {
-                    setUserId(user.uid);
-                } else {
-                    // Sign in anonymously if no token is available
-                    signInAnonymously(authInstance)
-                        .then(anonUser => setUserId(anonUser.user.uid))
-                        .catch(err => console.error("Anonymous sign-in failed:", err));
-                }
-                setIsAuthReady(true);
-            });
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setIsMobileMenuOpen(false);
+    }, [currentPage]);
 
-            // Use the provided custom token if available
-            if (initialAuthToken) {
-                signInWithCustomToken(authInstance, initialAuthToken)
-                    .catch(err => console.error("Custom token sign-in failed:", err));
-            }
-
-            return () => unsubscribe();
-        } catch (e) {
-            console.error("Firebase Initialization Error:", e);
-            // Fallback for non-authenticated user identification
-            setUserId(crypto.randomUUID());
-            setIsAuthReady(true);
+    useEffect(() => {
+        if (isMobileMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
         }
-    }, []); 
-
-    // Helper Functions
-    const handleNavClick = (page) => {
-        setCurrentPage(page);
-        if (isMenuOpen) {
-            setIsMenuOpen(false);
-        }
-        // This is crucial for screen reader users when routing in a single-page app:
-        // Move focus to the main content area after the page changes.
-        const mainContent = document.querySelector('main');
-        if (mainContent) {
-            mainContent.setAttribute('tabIndex', '-1');
-            mainContent.focus();
-            mainContent.removeAttribute('tabIndex');
-        }
-        window.scrollTo(0, 0);
-    };
-
-    const toggleMenu = () => {
-        setIsMenuOpen(prev => !prev);
-    };
-
-    const customStyles = {
-        fontFamily: "'Inter', sans-serif",
-        backgroundColor: '#f9fafb',
-    };
-
-    const headerShadow = "shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.06)]";
+        return () => { document.body.style.overflow = 'unset'; }
+    }, [isMobileMenuOpen]);
 
     const renderPage = () => {
-        // Ensure authentication is ready before rendering pages that might need the userId
-        if (!isAuthReady) {
-            return (
-                <div className="py-20 text-center text-red-700 font-semibold">
-                    <div className="animate-pulse">Loading Application...</div>
-                </div>
-            );
-        }
-
+        if (!isAuthReady) return (
+            <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center text-white z-[3000]">
+                <div className="w-16 h-16 border-4 border-red-700 border-t-transparent rounded-full animate-spin mb-6"></div>
+                <p className="text-[10px] font-black tracking-widest uppercase animate-pulse">Initialising</p>
+            </div>
+        );
+        
         switch (currentPage) {
-            case PAGES.HOME:
-                return <HomePage setPage={handleNavClick} />;
-            case PAGES.RESOURCES:
-                // Pass necessary Firebase state (though only userId is used in this file for display)
-                return <ResourcesPage setPage={handleNavClick} userId={userId} appId={appId} />; 
-            case PAGES.THERAPIES:
-                return <TherapiesPage />;
-            case PAGES.RESEARCH:
-                return <ResearchPage />;
-            case PAGES.EXCHANGE:
-                // Pass db, userId, and appId to the Exchange page for Firestore operations
-                return <EquipmentExchangePage db={db} userId={userId} appId={appId} />; 
-            case PAGES.GET_INVOLVED:
-            default:
-                if (currentPage === PAGES.GET_INVOLVED) {
-                    setTimeout(() => {
-                        document.getElementById('sign-up-form')?.scrollIntoView({ behavior: 'smooth' });
-                    }, 50);
-                    return (
-                        <>
-                            <HomePage setPage={handleNavClick} />
-                            {/* This is the new, primary CTA form */}
-                            <GetInvolvedForm db={db} userId={userId} appId={appId} /> 
-                        </>
-                    );
-                }
-                return <HomePage setPage={handleNavClick} />;
+            case PAGES.HOME: return <><HeroSection setPage={setCurrentPage} /><PillarsSection /></>;
+            case PAGES.RESOURCES: return <ResourcesPage setNotif={setNotif} />;
+            case PAGES.THERAPIES: return <TherapiesPage setNotif={setNotif} />;
+            case PAGES.RESEARCH: return <ResearchPage setNotif={setNotif} />;
+            case PAGES.EXCHANGE: return <ExchangePage setNotif={setNotif} items={equipmentItems} setItems={setEquipmentItems} />;
+            case PAGES.GET_INVOLVED: return <GetInvolvedPage setNotif={setNotif} />;
+            default: return <HeroSection setPage={setCurrentPage} />;
         }
     };
 
     return (
-        <div className="text-gray-900" style={customStyles}>
-            <a href="#main-content" className="sr-only focus:not-sr-only focus:block absolute left-0 top-0 bg-red-700 text-white p-3 z-[999] rounded-br-lg">Skip to main content</a>
-            {/* Header and Navigation */}
-            <header className={`${headerShadow} bg-white sticky top-0 z-50`}>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-20">
-                        {/* Logo/Title - Always returns to HOME */}
-                        <button onClick={() => handleNavClick(PAGES.HOME)} className="flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-red-700 rounded-lg p-2" aria-label="Tenda Care - Home">
+        <div className="flex min-h-screen bg-white font-sans text-slate-950 selection:bg-red-700 selection:text-white antialiased">
+            {notif && <Notification message={notif.msg} type={notif.type} onClose={() => setNotif(null)} />}
+            
+            {/* Mobile Top Header (Only visible on small screens) */}
+            <div className="md:hidden fixed top-0 w-full bg-white/95 backdrop-blur-lg border-b border-slate-100 z-[1000] h-20 flex justify-between items-center px-6">
+                <button onClick={() => setCurrentPage(PAGES.HOME)} className="flex items-center space-x-3 outline-none group">
+                    <div className="w-10 h-10 bg-red-700 rounded-[10px] flex items-center justify-center shadow-md"><LogoIcon /></div>
+                    <span className="text-xl font-black text-slate-950 tracking-tighter uppercase leading-none">Tenda Care</span>
+                </button>
+                <button className="p-2 text-red-700 bg-red-50 rounded-lg border border-red-100" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                    {isMobileMenuOpen ? <X size={24} strokeWidth={2.5} /> : <Menu size={24} strokeWidth={2.5} />}
+                </button>
+            </div>
+
+            {/* Vertical Sidebar Navigation (Fixed on left for md+, slide-in for mobile) */}
+            <aside className={`fixed top-0 left-0 h-screen w-64 bg-slate-50 border-r border-slate-200 z-[1050] transition-transform transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 flex flex-col shadow-2xl md:shadow-none`}>
+                
+                {/* Sidebar Logo Area */}
+                <div className="h-24 flex items-center px-6 border-b border-slate-200 flex-shrink-0">
+                    <button onClick={() => {setCurrentPage(PAGES.HOME); setIsMobileMenuOpen(false);}} className="flex items-center space-x-3 outline-none group text-left">
+                        <div className="w-10 h-10 bg-red-700 rounded-xl flex items-center justify-center shadow-md group-hover:rotate-6 transition-all">
                             <LogoIcon />
-                            <span className="text-2xl font-extrabold text-gray-900 tracking-tight">Tenda Care</span>
-                        </button>
-
-                        {/* Desktop Navigation */}
-                        <nav className="hidden md:flex space-x-8" aria-label="Main Navigation">
-                            {navLinks.map(link => (
-                                <button
-                                    key={link.page}
-                                    onClick={() => handleNavClick(link.page)}
-                                    className={`font-medium transition duration-150 ${currentPage === link.page ? 'text-red-700 border-b-2 border-red-700' : 'text-gray-600 hover:text-red-700'}`}
-                                    aria-current={currentPage === link.page ? 'page' : undefined}
-                                >
-                                    {link.label}
-                                </button>
-                            ))}
-                            <button
-                                onClick={() => handleNavClick(PAGES.GET_INVOLVED)}
-                                className="text-white bg-red-700 hover:bg-red-800 px-4 py-2 rounded-lg font-semibold transition duration-150 shadow-md"
-                                aria-label="Get Involved (Call to Action)"
-                            >
-                                Get Involved
-                            </button>
-                        </nav>
-
-                        {/* Mobile Menu Button */}
-                        <button
-                            id="mobile-menu-btn"
-                            className="md:hidden text-gray-900 hover:text-red-700 p-2 rounded-lg transition duration-150"
-                            aria-expanded={isMenuOpen}
-                            aria-controls="mobile-menu"
-                            onClick={toggleMenu}
-                        >
-                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={isMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16m-7 6h7"}/>
-                            </svg>
-                        </button>
-                    </div>
+                        </div>
+                        <span className="text-xl font-black text-slate-950 tracking-tighter uppercase leading-none group-hover:text-red-700 transition-colors">Tenda <br/>Care</span>
+                    </button>
                 </div>
 
-                {/* Mobile Menu */}
-                <nav id="mobile-menu" className={`${isMenuOpen ? 'block' : 'hidden'} md:hidden bg-white shadow-xl py-2`} aria-label="Mobile Navigation">
-                    <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 flex flex-col">
-                        {navLinks.map(link => (
-                            <button
-                                key={link.page}
-                                onClick={() => handleNavClick(link.page)}
-                                className="text-gray-900 hover:bg-red-50 hover:text-red-700 block px-3 py-2 rounded-md text-base font-medium text-left"
-                                aria-current={currentPage === link.page ? 'page' : undefined}
+                {/* BULLETPROOF NAV AREA */}
+                <nav className="flex-grow overflow-y-auto py-8 px-4 flex flex-col gap-3 custom-scrollbar">
+                    {Object.keys(PAGES).map(key => {
+                        if (key === 'HOME') return null; // Hide 'HOME' link
+                        const isActive = currentPage === PAGES[key];
+                        return (
+                            <button 
+                                key={key} 
+                                onClick={() => {setCurrentPage(PAGES[key]); setIsMobileMenuOpen(false);}} 
+                                className={`w-full text-left px-5 py-4 font-black uppercase text-xs tracking-widest transition-all rounded-xl border-2 ${
+                                    isActive 
+                                    ? 'bg-red-700 border-red-700 text-white shadow-md' 
+                                    : 'bg-white border-red-100 text-red-700 hover:bg-red-50 hover:border-red-300' 
+                                }`}
                             >
-                                {link.label}
+                                {key.replace('_', ' ')}
                             </button>
-                        ))}
-                        <button
-                            onClick={() => handleNavClick(PAGES.GET_INVOLVED)}
-                            className="text-white bg-red-700 hover:bg-red-800 block px-3 py-2 rounded-md text-base font-medium mt-2 text-center"
-                            aria-label="Get Involved (Call to Action)"
-                        >
-                            Get Involved
-                        </button>
-                    </div>
+                        );
+                    })}
                 </nav>
-            </header>
 
-            {/* Main Content Router - Added ID for focus management */}
-            <main id="main-content" role="main">
-                {renderPage()}
-            </main>
-
-            {/* Footer */}
-            <footer className="bg-gray-800 text-white py-8" role="contentinfo">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    {userId && isAuthReady && (
-                        <p className="text-gray-400 text-sm mb-2">Authenticated User ID: <span className="text-red-400 font-mono break-all">{userId}</span></p>
-                    )}
-                    <p className="text-gray-400 text-sm">© 2024 Tenda Care. Built on the principle of Inclusion. All rights reserved.</p>
-                    <div className="mt-4 space-x-4">
-                        <button onClick={() => handleNavClick(PAGES.HOME)} className="text-gray-400 hover:text-red-400 transition duration-150">Privacy Policy</button>
-                        <button onClick={() => handleNavClick(PAGES.HOME)} className="text-gray-400 hover:text-red-400 transition duration-150">Terms of Use</button>
-                        <button onClick={() => handleNavClick(PAGES.HOME)} className="text-gray-400 hover:text-red-400 transition duration-150">Accessibility Statement</button>
-                    </div>
+                {/* Sidebar Bottom Action */}
+                <div className="p-6 border-t border-slate-200 bg-white">
+                    <button 
+                        onClick={() => {setCurrentPage(PAGES.GET_INVOLVED); setIsMobileMenuOpen(false);}} 
+                        className="w-full py-4 bg-slate-950 hover:bg-red-700 text-white text-[10px] font-black rounded-xl transition-all uppercase tracking-widest shadow-md hover:-translate-y-1 flex items-center justify-center space-x-2"
+                    >
+                        <span>JOIN ACTION</span> <ArrowRight className="w-4 h-4" />
+                    </button>
                 </div>
-            </footer>
+            </aside>
+
+            {/* Mobile Overlay for closing sidebar */}
+            {isMobileMenuOpen && (
+                <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[1040] md:hidden" onClick={() => setIsMobileMenuOpen(false)} />
+            )}
+
+            {/* Main Content Wrapper (Pushed right on desktop to account for sidebar) */}
+            <div className="flex-1 flex flex-col md:ml-64 min-w-0 transition-all duration-300">
+                <main className="flex-1 pt-20 md:pt-0">
+                    {renderPage()}
+                </main>
+
+                {/* Compact Footer */}
+                <footer className="bg-slate-950 text-white py-16 border-t border-white/5 relative">
+                    <div className="max-w-7xl mx-auto px-6 relative z-10">
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+                            <div className="lg:col-span-2 text-left">
+                                <div className="flex items-center space-x-4 mb-6">
+                                    <div className="w-10 h-10 bg-red-700 rounded-lg flex items-center justify-center"><LogoIcon /></div>
+                                    <span className="text-2xl font-black tracking-tighter uppercase">Tenda Care</span>
+                                </div>
+                                <p className="text-slate-400 text-lg max-w-sm leading-snug font-bold italic mb-6 uppercase tracking-tight">
+                                    Global Advocacy. Built for Everyone.
+                                </p>
+                            </div>
+                            <div className="text-left">
+                                <h4 className="font-black uppercase tracking-widest text-red-700 mb-6 text-[10px]">Operational Nodes</h4>
+                                <ul className="space-y-4 text-slate-300 font-bold text-xs">
+                                    <li className="hover:text-white cursor-pointer transition-colors" onClick={() => setCurrentPage(PAGES.EXCHANGE)}>Device Exchange</li>
+                                    <li className="hover:text-white cursor-pointer transition-colors" onClick={() => setCurrentPage(PAGES.RESOURCES)}>Legal Library</li>
+                                    <li className="hover:text-white cursor-pointer transition-colors" onClick={() => setCurrentPage(PAGES.RESEARCH)}>Empirical Data</li>
+                                </ul>
+                            </div>
+                            <div className="text-left">
+                                <h4 className="font-black uppercase tracking-widest text-red-700 mb-6 text-[10px]">Radical Action</h4>
+                                <ul className="space-y-4 text-slate-300 font-bold text-xs">
+                                    <li className="hover:text-white cursor-pointer transition-colors" onClick={() => setCurrentPage(PAGES.GET_INVOLVED)}>Join Force</li>
+                                    <li className="hover:text-white cursor-pointer transition-colors" onClick={() => setNotif({msg: 'Access restricted to internal IPs.', type: 'info'})}>Staff Cloud</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div className="pt-8 border-t border-white/10 text-slate-500 font-bold text-[10px] tracking-widest uppercase flex flex-col xl:flex-row justify-between items-center gap-4 text-center xl:text-left">
+                            <p>© 2026 Tenda Care International. All Rights Reserved.</p>
+                            <p>Nairobi HQ • Interactive Web Application</p>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+            
+            <style>{`
+              .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+              .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+              .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+              .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #ef4444; }
+              
+              @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+              .animate-fade-in { animation: fade-in 0.4s ease-out; }
+            `}</style>
         </div>
     );
 };

@@ -25,7 +25,13 @@ import {
   Lock,
   ChevronRight,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  // --- NEW ICONS FOR NAVIGATION ---
+  Home,
+  BookOpen,
+  Microscope,
+  ArrowRightLeft,
+  Megaphone
 } from 'lucide-react';
 
 // --- Constants & Data ---
@@ -37,6 +43,16 @@ const PAGES = {
     EXCHANGE: 'EXCHANGE',
     GET_INVOLVED: 'GET_INVOLVED',
 };
+
+// Map pages to their display labels and icons
+const NAV_ITEMS = [
+    { id: PAGES.HOME, label: 'Home', icon: <Home className="w-4 h-4 mb-0.5" /> },
+    { id: PAGES.RESOURCES, label: 'Resources', icon: <BookOpen className="w-4 h-4 mb-0.5" /> },
+    { id: PAGES.THERAPIES, label: 'Therapies', icon: <HeartPulse className="w-4 h-4 mb-0.5" /> },
+    { id: PAGES.RESEARCH, label: 'Research', icon: <Microscope className="w-4 h-4 mb-0.5" /> },
+    { id: PAGES.EXCHANGE, label: 'Exchange', icon: <ArrowRightLeft className="w-4 h-4 mb-0.5" /> },
+    { id: PAGES.GET_INVOLVED, label: 'Get Involved', icon: <Megaphone className="w-4 h-4 mb-0.5" /> }
+];
 
 const DEVICE_TYPES = [
   "Mobility (Wheelchairs, Crutches)",
@@ -161,7 +177,6 @@ const PillarsSection = () => {
     );
 };
 
-// --- Current Affairs Feed Component ---
 const CurrentAffairsFeed = () => {
     const [news, setNews] = useState([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -244,8 +259,6 @@ const CurrentAffairsFeed = () => {
         </div>
     );
 };
-
-// --- Page Components ---
 
 const ResourcesPage = ({ setNotif }) => {
     const [view, setView] = useState('list');
@@ -748,112 +761,136 @@ const App = () => {
     };
 
     return (
-        <div className="flex min-h-screen bg-white font-sans text-slate-950 selection:bg-red-700 selection:text-white antialiased">
+        <div className="flex flex-col min-h-screen bg-white font-sans text-slate-950 selection:bg-red-700 selection:text-white antialiased">
             {notif && <Notification message={notif.msg} type={notif.type} onClose={() => setNotif(null)} />}
             
-            {/* Mobile Top Header (Only visible on small screens) */}
-            <div className="md:hidden fixed top-0 w-full bg-white/95 backdrop-blur-lg border-b border-slate-100 z-[1000] h-20 flex justify-between items-center px-6">
-                <button onClick={() => setCurrentPage(PAGES.HOME)} className="flex items-center space-x-3 outline-none group">
-                    <div className="w-10 h-10 bg-red-700 rounded-[10px] flex items-center justify-center shadow-md"><LogoIcon /></div>
-                    <span className="text-xl font-black text-slate-950 tracking-tighter uppercase leading-none">Tenda Care</span>
-                </button>
-                <button className="p-2 text-red-700 bg-red-50 rounded-lg border border-red-100" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-                    {isMobileMenuOpen ? <X size={24} strokeWidth={2.5} /> : <Menu size={24} strokeWidth={2.5} />}
-                </button>
-            </div>
-
-            {/* Vertical Sidebar Navigation (Fixed on left for md+, slide-in for mobile) */}
-            <aside className={`fixed top-0 left-0 h-screen w-64 bg-slate-50 border-r border-slate-200 z-[1050] transition-transform transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 flex flex-col shadow-2xl md:shadow-none`}>
+            {/* --- TOP NAVIGATION BAR --- */}
+            <header className="fixed top-0 w-full bg-white/95 backdrop-blur-lg border-b border-slate-100 z-[1000] h-20 flex justify-between items-center px-6">
                 
-                {/* Sidebar Logo Area */}
-                <div className="h-24 flex items-center px-6 border-b border-slate-200 flex-shrink-0">
-                    <button onClick={() => {setCurrentPage(PAGES.HOME); setIsMobileMenuOpen(false);}} className="flex items-center space-x-3 outline-none group text-left">
-                        <div className="w-10 h-10 bg-red-700 rounded-xl flex items-center justify-center shadow-md group-hover:rotate-6 transition-all">
-                            <LogoIcon />
-                        </div>
-                        <span className="text-xl font-black text-slate-950 tracking-tighter uppercase leading-none group-hover:text-red-700 transition-colors">Tenda <br/>Care</span>
-                    </button>
-                </div>
+                {/* Brand / Logo */}
+                <button onClick={() => setCurrentPage(PAGES.HOME)} className="flex items-center space-x-3 outline-none group">
+                    <div className="w-10 h-10 bg-red-700 rounded-[10px] flex items-center justify-center shadow-md group-hover:rotate-6 transition-all">
+                        <LogoIcon />
+                    </div>
+                    <span className="text-xl font-black text-slate-950 tracking-tighter uppercase leading-none group-hover:text-red-700 transition-colors">Tenda Care</span>
+                </button>
 
-                {/* BULLETPROOF NAV AREA */}
-                <nav className="flex-grow overflow-y-auto py-8 px-4 flex flex-col gap-3 custom-scrollbar">
-                    {Object.keys(PAGES).map(key => {
-                        if (key === 'HOME') return null; // Hide 'HOME' link
-                        const isActive = currentPage === PAGES[key];
+                {/* Desktop Menu */}
+                <nav className="hidden lg:flex items-center space-x-2">
+                    {NAV_ITEMS.map((item) => {
+                        if (item.id === PAGES.HOME) return null; // Hide Home from top bar since logo handles it
+                        const isActive = currentPage === item.id;
                         return (
                             <button 
-                                key={key} 
-                                onClick={() => {setCurrentPage(PAGES[key]); setIsMobileMenuOpen(false);}} 
-                                className={`w-full text-left px-5 py-4 font-black uppercase text-xs tracking-widest transition-all rounded-xl border-2 ${
+                                key={item.id} 
+                                onClick={() => setCurrentPage(item.id)} 
+                                className={`flex items-center space-x-1.5 px-4 py-2.5 font-black uppercase text-[10px] tracking-widest transition-all rounded-full ${
                                     isActive 
-                                    ? 'bg-red-700 border-red-700 text-white shadow-md' 
-                                    : 'bg-white border-red-100 text-red-700 hover:bg-red-50 hover:border-red-300' 
+                                    ? 'bg-red-700 text-white shadow-md' 
+                                    : 'bg-transparent text-slate-600 hover:bg-red-50 hover:text-red-700' 
                                 }`}
                             >
-                                {key.replace('_', ' ')}
+                                {item.icon}
+                                <span>{item.label}</span>
                             </button>
                         );
                     })}
                 </nav>
 
-                {/* Sidebar Bottom Action */}
-                <div className="p-6 border-t border-slate-200 bg-white">
+                {/* Desktop CTA & Mobile Toggle */}
+                <div className="flex items-center space-x-4">
                     <button 
-                        onClick={() => {setCurrentPage(PAGES.GET_INVOLVED); setIsMobileMenuOpen(false);}} 
-                        className="w-full py-4 bg-slate-950 hover:bg-red-700 text-white text-[10px] font-black rounded-xl transition-all uppercase tracking-widest shadow-md hover:-translate-y-1 flex items-center justify-center space-x-2"
+                        onClick={() => setCurrentPage(PAGES.GET_INVOLVED)} 
+                        className="hidden lg:flex items-center space-x-2 px-6 py-2.5 bg-slate-950 hover:bg-red-700 text-white text-[10px] font-black rounded-full transition-all uppercase tracking-widest shadow-md hover:-translate-y-0.5"
                     >
-                        <span>JOIN ACTION</span> <ArrowRight className="w-4 h-4" />
+                        <span>JOIN ACTION</span> <ArrowRight className="w-3 h-3" />
+                    </button>
+                    
+                    <button className="lg:hidden p-2 text-red-700 bg-red-50 rounded-lg border border-red-100" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                        {isMobileMenuOpen ? <X size={24} strokeWidth={2.5} /> : <Menu size={24} strokeWidth={2.5} />}
                     </button>
                 </div>
-            </aside>
+            </header>
 
-            {/* Mobile Overlay for closing sidebar */}
+            {/* --- MOBILE DROPDOWN MENU --- */}
+            <div className={`lg:hidden fixed top-20 left-0 w-full bg-white border-b border-slate-100 shadow-2xl z-[990] transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'max-h-[80vh] opacity-100 py-6' : 'max-h-0 opacity-0 overflow-hidden py-0'}`}>
+                <nav className="flex flex-col px-6 gap-3">
+                    {NAV_ITEMS.map((item) => {
+                        if (item.id === PAGES.HOME) return null; // Hide Home
+                        const isActive = currentPage === item.id;
+                        return (
+                            <button 
+                                key={item.id} 
+                                onClick={() => {setCurrentPage(item.id); setIsMobileMenuOpen(false);}} 
+                                className={`flex items-center space-x-3 w-full text-left px-5 py-4 font-black uppercase text-xs tracking-widest transition-all rounded-xl border-2 ${
+                                    isActive 
+                                    ? 'bg-red-700 border-red-700 text-white shadow-md' 
+                                    : 'bg-white border-red-100 text-red-700 hover:bg-red-50 hover:border-red-300' 
+                                }`}
+                            >
+                                <div className={`${isActive ? 'text-white' : 'text-red-700'}`}>
+                                    {item.icon}
+                                </div>
+                                <span>{item.label}</span>
+                            </button>
+                        );
+                    })}
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                        <button 
+                            onClick={() => {setCurrentPage(PAGES.GET_INVOLVED); setIsMobileMenuOpen(false);}} 
+                            className="w-full py-4 bg-slate-950 text-white text-[10px] font-black rounded-xl transition-all uppercase tracking-widest shadow-md flex items-center justify-center space-x-2"
+                        >
+                            <span>JOIN ACTION</span> <ArrowRight className="w-4 h-4" />
+                        </button>
+                    </div>
+                </nav>
+            </div>
+
+            {/* Mobile Overlay */}
             {isMobileMenuOpen && (
-                <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[1040] md:hidden" onClick={() => setIsMobileMenuOpen(false)} />
+                <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[980] lg:hidden top-20" onClick={() => setIsMobileMenuOpen(false)} />
             )}
 
-            {/* Main Content Wrapper (Pushed right on desktop to account for sidebar) */}
-            <div className="flex-1 flex flex-col md:ml-64 min-w-0 transition-all duration-300">
-                <main className="flex-1 pt-20 md:pt-0">
-                    {renderPage()}
-                </main>
+            {/* --- MAIN CONTENT --- */}
+            <main className="flex-1 w-full pt-20">
+                {renderPage()}
+            </main>
 
-                {/* Compact Footer */}
-                <footer className="bg-slate-950 text-white py-16 border-t border-white/5 relative">
-                    <div className="max-w-7xl mx-auto px-6 relative z-10">
-                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
-                            <div className="lg:col-span-2 text-left">
-                                <div className="flex items-center space-x-4 mb-6">
-                                    <div className="w-10 h-10 bg-red-700 rounded-lg flex items-center justify-center"><LogoIcon /></div>
-                                    <span className="text-2xl font-black tracking-tighter uppercase">Tenda Care</span>
-                                </div>
-                                <p className="text-slate-400 text-lg max-w-sm leading-snug font-bold italic mb-6 uppercase tracking-tight">
-                                    Global Advocacy. Built for Everyone.
-                                </p>
+            {/* --- FOOTER --- */}
+            <footer className="bg-slate-950 text-white py-16 border-t border-white/5 relative">
+                <div className="max-w-7xl mx-auto px-6 relative z-10">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+                        <div className="lg:col-span-2 text-left">
+                            <div className="flex items-center space-x-4 mb-6">
+                                <div className="w-10 h-10 bg-red-700 rounded-lg flex items-center justify-center"><LogoIcon /></div>
+                                <span className="text-2xl font-black tracking-tighter uppercase">Tenda Care</span>
                             </div>
-                            <div className="text-left">
-                                <h4 className="font-black uppercase tracking-widest text-red-700 mb-6 text-[10px]">Operational Nodes</h4>
-                                <ul className="space-y-4 text-slate-300 font-bold text-xs">
-                                    <li className="hover:text-white cursor-pointer transition-colors" onClick={() => setCurrentPage(PAGES.EXCHANGE)}>Device Exchange</li>
-                                    <li className="hover:text-white cursor-pointer transition-colors" onClick={() => setCurrentPage(PAGES.RESOURCES)}>Legal Library</li>
-                                    <li className="hover:text-white cursor-pointer transition-colors" onClick={() => setCurrentPage(PAGES.RESEARCH)}>Empirical Data</li>
-                                </ul>
-                            </div>
-                            <div className="text-left">
-                                <h4 className="font-black uppercase tracking-widest text-red-700 mb-6 text-[10px]">Radical Action</h4>
-                                <ul className="space-y-4 text-slate-300 font-bold text-xs">
-                                    <li className="hover:text-white cursor-pointer transition-colors" onClick={() => setCurrentPage(PAGES.GET_INVOLVED)}>Join Force</li>
-                                    <li className="hover:text-white cursor-pointer transition-colors" onClick={() => setNotif({msg: 'Access restricted to internal IPs.', type: 'info'})}>Staff Cloud</li>
-                                </ul>
-                            </div>
+                            <p className="text-slate-400 text-lg max-w-sm leading-snug font-bold italic mb-6 uppercase tracking-tight">
+                                Global Advocacy. Built for Everyone.
+                            </p>
                         </div>
-                        <div className="pt-8 border-t border-white/10 text-slate-500 font-bold text-[10px] tracking-widest uppercase flex flex-col xl:flex-row justify-between items-center gap-4 text-center xl:text-left">
-                            <p>© 2026 Tenda Care International. All Rights Reserved.</p>
-                            <p>Nairobi HQ • Interactive Web Application</p>
+                        <div className="text-left">
+                            <h4 className="font-black uppercase tracking-widest text-red-700 mb-6 text-[10px]">Operational Nodes</h4>
+                            <ul className="space-y-4 text-slate-300 font-bold text-xs">
+                                <li className="hover:text-white cursor-pointer transition-colors flex items-center" onClick={() => setCurrentPage(PAGES.EXCHANGE)}><ArrowRightLeft className="w-3 h-3 mr-2 text-red-700"/> Device Exchange</li>
+                                <li className="hover:text-white cursor-pointer transition-colors flex items-center" onClick={() => setCurrentPage(PAGES.RESOURCES)}><BookOpen className="w-3 h-3 mr-2 text-red-700"/> Legal Library</li>
+                                <li className="hover:text-white cursor-pointer transition-colors flex items-center" onClick={() => setCurrentPage(PAGES.RESEARCH)}><Microscope className="w-3 h-3 mr-2 text-red-700"/> Empirical Data</li>
+                            </ul>
+                        </div>
+                        <div className="text-left">
+                            <h4 className="font-black uppercase tracking-widest text-red-700 mb-6 text-[10px]">Radical Action</h4>
+                            <ul className="space-y-4 text-slate-300 font-bold text-xs">
+                                <li className="hover:text-white cursor-pointer transition-colors flex items-center" onClick={() => setCurrentPage(PAGES.GET_INVOLVED)}><Megaphone className="w-3 h-3 mr-2 text-red-700"/> Join Force</li>
+                                <li className="hover:text-white cursor-pointer transition-colors flex items-center" onClick={() => setNotif({msg: 'Access restricted to internal IPs.', type: 'info'})}><Lock className="w-3 h-3 mr-2 text-red-700"/> Staff Cloud</li>
+                            </ul>
                         </div>
                     </div>
-                </footer>
-            </div>
+                    <div className="pt-8 border-t border-white/10 text-slate-500 font-bold text-[10px] tracking-widest uppercase flex flex-col xl:flex-row justify-between items-center gap-4 text-center xl:text-left">
+                        <p>© 2026 Tenda Care International. All Rights Reserved.</p>
+                        <p>Nairobi HQ • Interactive Web Application</p>
+                    </div>
+                </div>
+            </footer>
             
             <style>{`
               .custom-scrollbar::-webkit-scrollbar { width: 4px; }

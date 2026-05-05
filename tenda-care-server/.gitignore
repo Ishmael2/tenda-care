@@ -1,0 +1,4 @@
+node_modules/
+.env
+tenda_storage/
+.DS_Store

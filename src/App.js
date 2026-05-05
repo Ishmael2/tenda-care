@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Circle as LucideCircle, Globe, ShieldCheck, Users, ArrowRight, Activity, Search, Menu, X, CreditCard, MapPin, Stethoscope, Scale, Briefcase, Award, GraduationCap, HeartPulse, Heart, Download, Plus, CheckCircle2, Info, Lock, ChevronRight, RefreshCw, ExternalLink, Home, BookOpen, Microscope, ArrowRightLeft, Megaphone, Upload, Calendar, Clock, Wrench, MessageSquare, Eye, Tag, User, AlignLeft, UserCircle, ChevronLeft, ImageIcon, FileText, Cpu, Settings, Map, Compass
+  Circle as LucideCircle, Globe, Users, ArrowRight, Activity, Search, X, CreditCard, MapPin, Stethoscope, Scale, Briefcase, GraduationCap, HeartPulse, Heart, Download, Plus, CheckCircle2, Info, ChevronRight, RefreshCw, ExternalLink, Home, BookOpen, Microscope, ArrowRightLeft, Megaphone, Upload, Calendar, Clock, Wrench, MessageSquare, Eye, Tag, User, AlignLeft, UserCircle, ChevronLeft, ImageIcon, FileText, Cpu, Settings, Map, Compass
 } from 'lucide-react';
 
 import Login from './components/Login'; 
@@ -543,7 +543,7 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
     );
 };
 
-// --- UPDATED R&D LAB PAGE ---
+// --- R&D LAB PAGE ---
 const ResearchPage = ({ setNotif }) => {
     const [showRepairBooking, setShowRepairBooking] = useState(false);
     const [currentProjectIndex, setCurrentProjectIndex] = useState(0);
@@ -680,7 +680,7 @@ const ResearchPage = ({ setNotif }) => {
                 </div>
             </div>
 
-            {/* Lead Researchers - UPDATED PERSONNEL */}
+            {/* Lead Researchers */}
             <div className="bg-slate-950 rounded-[3rem] p-10 lg:p-16 text-white relative overflow-hidden shadow-2xl">
                 <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-red-700/10 blur-[100px] rounded-full pointer-events-none"></div>
                 <div className="flex items-center mb-10 border-b border-white/10 pb-6 relative z-10">
@@ -761,12 +761,13 @@ const ResearchPage = ({ setNotif }) => {
     );
 };
 
-const ExchangePage = ({ setNotif, items, setItems }) => {
+const ExchangePage = ({ setNotif }) => {
     const [view, setView] = useState('list');
     const [selectedType, setSelectedType] = useState("");
     const [search, setSearch] = useState("");
     
     // DB Items State
+    const [items, setItems] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null);
     const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
     
@@ -791,7 +792,7 @@ const ExchangePage = ({ setNotif, items, setItems }) => {
             }
         };
         fetchEquipment();
-    }, [setItems]);
+    }, []);
 
     const nextSlide = () => setCurrentSlideIndex(prev => (selectedItem?.image_urls && prev === selectedItem.image_urls.length - 1) ? 0 : prev + 1);
     const prevSlide = () => setCurrentSlideIndex(prev => (selectedItem?.image_urls && prev === 0) ? selectedItem.image_urls.length - 1 : prev - 1);
@@ -1157,7 +1158,6 @@ const GetInvolvedPage = ({ setNotif, onAddSpecialist }) => {
 const App = () => {
     const [currentPage, setCurrentPage] = useState(PAGES.HOME);
     const [isAuthReady, setIsAuthReady] = useState(false);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [notif, setNotif] = useState(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
@@ -1177,7 +1177,7 @@ const App = () => {
     }, []);
 
     useEffect(() => { setTimeout(() => setIsAuthReady(true), 800); }, []);
-    useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); setIsMobileMenuOpen(false); }, [currentPage]);
+    useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [currentPage]);
 
     const renderPage = () => {
         if (!isAuthReady) return <div className="fixed inset-0 bg-slate-950 flex justify-center items-center"><div className="w-16 h-16 border-4 border-red-700 border-t-transparent rounded-full animate-spin"></div></div>;

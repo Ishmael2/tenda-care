@@ -20,10 +20,6 @@ const NAV_ITEMS = [
 
 const DEVICE_TYPES = ["Mobility (Wheelchairs, Crutches)", "Visual (Braille, White Canes)", "Hearing (Digital Aids, Vibrating Alarms)", "Tech (Specialized Keyboards, Screen Readers)", "Daily Living (Adapted Utensils, Reach Sticks)"];
 
-const INITIAL_MOCK_EQUIPMENT = [
-    { id: '1', type: 'donation', name: 'Standard Wheelchair', deviceType: "Mobility", condition: 'Mint / Boxed', donor: "Anonymous", timestamp: new Date().toISOString(), description: "Folding manual wheelchair with solid tires. Seat width is 18 inches.", defects: "None." }
-];
-
 const STATIC_CONTENT = {
     policies: [
       { 
@@ -1222,14 +1218,18 @@ const App = () => {
                 </nav>
 
                 <div className="flex items-center space-x-2 lg:space-x-4">
-                    {!isLoggedIn ? (
-                        <button onClick={() => setShowAuthModal(true)} className="flex items-center space-x-2 px-3 lg:px-5 py-2 lg:py-2.5 text-slate-600 hover:text-blue-600 font-black text-[10px] uppercase tracking-widest transition-colors"><UserCircle className="w-5 h-5 lg:w-4 lg:h-4" /> <span className="hidden lg:inline">Sign In</span></button>
-                    ) : (
-                        <button onClick={async () => { if(supabase) await supabase.auth.signOut(); setIsLoggedIn(false); setNotif({msg: "Logged out.", type: "info"}); }} className="flex items-center space-x-2 px-3 lg:px-5 py-2 lg:py-2.5 text-blue-600 font-black text-[10px] uppercase tracking-widest transition-colors"><UserCircle className="w-5 h-5 lg:w-4 lg:h-4" /> <span className="hidden lg:inline">Logout</span></button>
-                    )}
-                    <button onClick={() => setCurrentPage(PAGES.GET_INVOLVED)} className="flex items-center space-x-1 lg:space-x-2 px-4 lg:px-6 py-2 lg:py-2.5 bg-slate-950 hover:bg-blue-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-md transition-all">
-                        <span className="hidden sm:inline">JOIN ACTION</span><span className="sm:hidden">JOIN</span> <ArrowRight className="w-3 h-3 ml-1 lg:ml-0" />
-                    </button>
+                    {/* Desktop & Mobile Auth Buttons */}
+                    <div className="flex items-center space-x-2 lg:space-x-4">
+                        {!isLoggedIn ? (
+                            <button onClick={() => setShowAuthModal(true)} className="flex items-center space-x-2 px-3 lg:px-5 py-2 lg:py-2.5 text-slate-600 hover:text-blue-600 font-black text-[10px] uppercase tracking-widest transition-colors"><UserCircle className="w-5 h-5 lg:w-4 lg:h-4" /> <span className="hidden lg:inline">Sign In</span></button>
+                        ) : (
+                            <button onClick={async () => { if(supabase) await supabase.auth.signOut(); setIsLoggedIn(false); setNotif({msg: "Logged out.", type: "info"}); }} className="flex items-center space-x-2 px-3 lg:px-5 py-2 lg:py-2.5 text-blue-600 font-black text-[10px] uppercase tracking-widest transition-colors"><UserCircle className="w-5 h-5 lg:w-4 lg:h-4" /> <span className="hidden lg:inline">Logout</span></button>
+                        )}
+                        {/* Get Involved Button - visible on all screens */}
+                        <button onClick={() => setCurrentPage(PAGES.GET_INVOLVED)} className="flex items-center space-x-1 lg:space-x-2 px-4 lg:px-6 py-2 lg:py-2.5 bg-slate-950 hover:bg-blue-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-md transition-all">
+                            <span className="hidden sm:inline">JOIN ACTION</span><span className="sm:hidden">JOIN</span> <ArrowRight className="w-3 h-3 ml-1 lg:ml-0" />
+                        </button>
+                    </div>
                 </div>
             </header>
 

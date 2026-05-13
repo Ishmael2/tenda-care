@@ -10,15 +10,19 @@ import { supabase } from './supabaseClient';
 const PAGES = { HOME: 'HOME', RESOURCES: 'RESOURCES', THERAPIES: 'THERAPIES', RESEARCH: 'RESEARCH', EXCHANGE: 'EXCHANGE', GET_INVOLVED: 'GET_INVOLVED' };
 
 const NAV_ITEMS = [
-    { id: PAGES.HOME, label: 'Home', icon: <Home className="w-4 h-4 mb-0.5" /> },
-    { id: PAGES.RESOURCES, label: 'Resources', icon: <BookOpen className="w-4 h-4 mb-0.5" /> },
-    { id: PAGES.THERAPIES, label: 'Therapies', icon: <HeartPulse className="w-4 h-4 mb-0.5" /> },
-    { id: PAGES.RESEARCH, label: 'R&D Lab', icon: <Microscope className="w-4 h-4 mb-0.5" /> },
-    { id: PAGES.EXCHANGE, label: 'Exchange', icon: <ArrowRightLeft className="w-4 h-4 mb-0.5" /> },
-    { id: PAGES.GET_INVOLVED, label: 'Get Involved', icon: <Megaphone className="w-4 h-4 mb-0.5" /> }
+    { id: PAGES.HOME, label: 'Home', icon: <Home className="w-5 h-5 lg:w-4 lg:h-4 mb-0.5" /> },
+    { id: PAGES.RESOURCES, label: 'Resources', icon: <BookOpen className="w-5 h-5 lg:w-4 lg:h-4 mb-0.5" /> },
+    { id: PAGES.THERAPIES, label: 'Therapies', icon: <HeartPulse className="w-5 h-5 lg:w-4 lg:h-4 mb-0.5" /> },
+    { id: PAGES.RESEARCH, label: 'R&D Lab', icon: <Microscope className="w-5 h-5 lg:w-4 lg:h-4 mb-0.5" /> },
+    { id: PAGES.EXCHANGE, label: 'Exchange', icon: <ArrowRightLeft className="w-5 h-5 lg:w-4 lg:h-4 mb-0.5" /> },
+    { id: PAGES.GET_INVOLVED, label: 'Get Involved', icon: <Megaphone className="w-5 h-5 lg:w-4 lg:h-4 mb-0.5" /> }
 ];
 
 const DEVICE_TYPES = ["Mobility (Wheelchairs, Crutches)", "Visual (Braille, White Canes)", "Hearing (Digital Aids, Vibrating Alarms)", "Tech (Specialized Keyboards, Screen Readers)", "Daily Living (Adapted Utensils, Reach Sticks)"];
+
+const INITIAL_MOCK_EQUIPMENT = [
+    { id: '1', type: 'donation', name: 'Standard Wheelchair', deviceType: "Mobility", condition: 'Mint / Boxed', donor: "Anonymous", timestamp: new Date().toISOString(), description: "Folding manual wheelchair with solid tires. Seat width is 18 inches.", defects: "None." }
+];
 
 const STATIC_CONTENT = {
     policies: [
@@ -680,7 +684,7 @@ const ResearchPage = ({ setNotif }) => {
                 </div>
             </div>
 
-            {/* Lead Researchers - UPDATED PERSONNEL */}
+            {/* Lead Researchers */}
             <div className="bg-slate-950 rounded-[3rem] p-10 lg:p-16 text-white relative overflow-hidden shadow-2xl">
                 <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-blue-600/10 blur-[100px] rounded-full pointer-events-none"></div>
                 <div className="flex items-center mb-10 border-b border-white/10 pb-6 relative z-10">
@@ -1177,7 +1181,10 @@ const App = () => {
     }, []);
 
     useEffect(() => { setTimeout(() => setIsAuthReady(true), 800); }, []);
-    useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [currentPage]);
+    
+    useEffect(() => { 
+        window.scrollTo({ top: 0, behavior: 'smooth' }); 
+    }, [currentPage]);
 
     const renderPage = () => {
         if (!isAuthReady) return <div className="fixed inset-0 bg-slate-950 flex justify-center items-center"><div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>;
@@ -1193,14 +1200,16 @@ const App = () => {
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-white font-sans text-slate-950 antialiased">
+        <div className="flex flex-col min-h-screen bg-white font-sans text-slate-950 antialiased pb-24 lg:pb-0">
             {notif && <Notification message={notif.msg} type={notif.type} onClose={() => setNotif(null)} />}
             
-            <header className="fixed top-0 w-full bg-white/95 backdrop-blur-lg border-b border-slate-100 z-[1000] h-20 flex justify-between items-center px-6">
-                <button onClick={() => setCurrentPage(PAGES.HOME)} className="flex items-center space-x-3 outline-none group">
-                    <div className="w-10 h-10 bg-blue-600 rounded-[10px] flex items-center justify-center shadow-md group-hover:rotate-6 transition-all"><LogoIcon /></div>
-                    <span className="text-xl font-black tracking-tighter uppercase leading-none group-hover:text-blue-600 transition-colors">Tenda Care</span>
+            <header className="fixed top-0 w-full bg-white/95 backdrop-blur-lg border-b border-slate-100 z-[1000] h-20 flex justify-between items-center px-4 lg:px-6">
+                <button onClick={() => setCurrentPage(PAGES.HOME)} className="flex items-center space-x-2 lg:space-x-3 outline-none group z-50">
+                    <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-600 rounded-[10px] flex items-center justify-center shadow-md group-hover:rotate-6 transition-all"><LogoIcon /></div>
+                    <span className="text-lg lg:text-xl font-black tracking-tighter uppercase leading-none group-hover:text-blue-600 transition-colors">Tenda Care</span>
                 </button>
+                
+                {/* Desktop Nav */}
                 <nav className="hidden lg:flex items-center space-x-2">
                     {NAV_ITEMS.map((item) => {
                         if (item.id === PAGES.HOME) return null; 
@@ -1211,15 +1220,43 @@ const App = () => {
                         );
                     })}
                 </nav>
-                <div className="flex items-center space-x-4">
+
+                <div className="flex items-center space-x-2 lg:space-x-4">
                     {!isLoggedIn ? (
-                        <button onClick={() => setShowAuthModal(true)} className="hidden lg:flex items-center space-x-2 px-5 py-2.5 text-slate-600 hover:text-blue-600 font-black text-[10px] uppercase tracking-widest transition-colors"><UserCircle className="w-4 h-4" /> <span>Sign In</span></button>
+                        <button onClick={() => setShowAuthModal(true)} className="flex items-center space-x-2 px-3 lg:px-5 py-2 lg:py-2.5 text-slate-600 hover:text-blue-600 font-black text-[10px] uppercase tracking-widest transition-colors"><UserCircle className="w-5 h-5 lg:w-4 lg:h-4" /> <span className="hidden lg:inline">Sign In</span></button>
                     ) : (
-                        <button onClick={async () => { if(supabase) await supabase.auth.signOut(); setIsLoggedIn(false); setNotif({msg: "Logged out.", type: "info"}); }} className="hidden lg:flex items-center space-x-2 px-5 py-2.5 text-blue-600 font-black text-[10px] uppercase tracking-widest transition-colors"><UserCircle className="w-4 h-4" /> <span>Logout</span></button>
+                        <button onClick={async () => { if(supabase) await supabase.auth.signOut(); setIsLoggedIn(false); setNotif({msg: "Logged out.", type: "info"}); }} className="flex items-center space-x-2 px-3 lg:px-5 py-2 lg:py-2.5 text-blue-600 font-black text-[10px] uppercase tracking-widest transition-colors"><UserCircle className="w-5 h-5 lg:w-4 lg:h-4" /> <span className="hidden lg:inline">Logout</span></button>
                     )}
-                    <button onClick={() => setCurrentPage(PAGES.GET_INVOLVED)} className="hidden lg:flex items-center space-x-2 px-6 py-2.5 bg-slate-950 hover:bg-blue-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-md"><span>JOIN ACTION</span> <ArrowRight className="w-3 h-3" /></button>
+                    <button onClick={() => setCurrentPage(PAGES.GET_INVOLVED)} className="flex items-center space-x-1 lg:space-x-2 px-4 lg:px-6 py-2 lg:py-2.5 bg-slate-950 hover:bg-blue-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-md transition-all">
+                        <span className="hidden sm:inline">JOIN ACTION</span><span className="sm:hidden">JOIN</span> <ArrowRight className="w-3 h-3 ml-1 lg:ml-0" />
+                    </button>
                 </div>
             </header>
+
+            {/* Mobile Bottom Navigation */}
+            <nav className="lg:hidden fixed bottom-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-100 z-[1000] h-[72px] flex justify-around items-center px-2 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+                {NAV_ITEMS.map((item) => {
+                    // Exclude "Get Involved" since it's now in the top right header for mobile
+                    if (item.id === PAGES.GET_INVOLVED) return null;
+
+                    const isActive = currentPage === item.id;
+
+                    return (
+                        <button
+                            key={item.id}
+                            onClick={() => setCurrentPage(item.id)}
+                            className={`flex flex-col items-center justify-center w-16 h-full space-y-1 transition-colors ${isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                            <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-blue-50' : 'bg-transparent'}`}>
+                                {React.cloneElement(item.icon, { className: `w-5 h-5 mb-0 ${isActive ? 'scale-110' : ''}` })}
+                            </div>
+                            <span className={`text-[8px] font-black uppercase tracking-widest ${isActive ? 'opacity-100' : 'opacity-70'}`}>
+                                {item.label}
+                            </span>
+                        </button>
+                    );
+                })}
+            </nav>
 
             <main className="flex-1 w-full pt-20">{renderPage()}</main>
 

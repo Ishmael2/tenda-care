@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Circle as LucideCircle, Globe, Users, ArrowRight, Activity, Search, X, CreditCard, MapPin, Stethoscope, Scale, Briefcase, GraduationCap, HeartPulse, Heart, Plus, CheckCircle2, Info, ChevronRight, RefreshCw, ExternalLink, Home, BookOpen, Microscope, ArrowRightLeft, Megaphone, Upload, Calendar, Clock, Wrench, MessageSquare, Eye, Tag, User, AlignLeft, UserCircle, ChevronLeft, ImageIcon, FileText, Cpu, Settings, Map, Compass, Menu, ClipboardList, FileSearch, Target, Lightbulb, Phone, Mail, Handshake, BookOpenCheck, Award, Book, Library, Building2, PhoneCall, AlertTriangle
+  Circle as LucideCircle, Globe, Users, ArrowRight, Activity, Search, X, CreditCard, MapPin, Stethoscope, Scale, Briefcase, GraduationCap, HeartPulse, Heart, Plus, CheckCircle2, Info, ChevronRight, RefreshCw, ExternalLink, Home, BookOpen, Microscope, ArrowRightLeft, Megaphone, Upload, Calendar, Clock, Wrench, MessageSquare, Eye, Tag, User, AlignLeft, UserCircle, ChevronLeft, ImageIcon, FileText, Cpu, Settings, Map, Compass, ClipboardList, FileSearch, Target, Lightbulb, Phone, Mail, Handshake, BookOpenCheck, Award, Book, Library, Building2, PhoneCall, AlertTriangle
 } from 'lucide-react';
 
 import Login from './components/Login'; 
@@ -335,6 +335,8 @@ const CoreTeamSection = () => {
     );
 };
 
+// --- RESOURCES PAGE COMPONENTS ---
+
 const EmergencyContacts = () => {
     const contacts = [
         { title: "National Emergency / Police", number: "999 / 112 / 911", desc: "General emergency response and police dispatch." },
@@ -380,6 +382,7 @@ const LiveBooksFeed = () => {
         setIsRefreshing(true);
         setError(null);
         
+        // Open Library API: Search for books by topic/title
         const searchTerms = encodeURIComponent(query);
         const apiUrl = `https://openlibrary.org/search.json?q=${searchTerms}&limit=4`;
 
@@ -1082,6 +1085,7 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
     );
 };
 
+// --- RESEARCH SERVICES PAGE ---
 const ResearchPage = ({ setNotif }) => {
     const [showRepairBooking, setShowRepairBooking] = useState(false);
     const [showResearchBooking, setShowResearchBooking] = useState(false);
@@ -1456,7 +1460,7 @@ const ResearchPage = ({ setNotif }) => {
             {showResearchBooking && (
                 <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300 text-left">
                     <div className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar">
-                        <button onClick={() => { setShowResearchBooking(false); setResearchDocs([]); }} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-600 transition-all z-10"><X className="w-5 h-5"/></button>
+                        <button onClick={() => { setShowResearchBooking(false); setResearchDocs([]); }} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all z-10"><X className="w-5 h-5"/></button>
                         
                         <div className="flex items-center space-x-3 mb-6 pt-4">
                             <div className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg"><FileSearch className="w-6 h-6" /></div>
@@ -1947,7 +1951,6 @@ const App = () => {
     const [notif, setNotif] = useState(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Mobile Menu State added back
     
     // Global State
     const [dynamicSpecialists, setDynamicSpecialists] = useState([]);
@@ -1972,7 +1975,6 @@ const App = () => {
             const validPage = Object.values(PAGES).includes(hash) ? hash : PAGES.HOME;
             setCurrentPage(validPage);
             window.scrollTo({ top: 0, behavior: 'smooth' }); 
-            setIsMobileMenuOpen(false); // Close menu on navigation
         };
 
         window.addEventListener('hashchange', handleHashChange);
@@ -2004,80 +2006,63 @@ const App = () => {
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-white font-sans text-slate-950 antialiased pb-24 lg:pb-0">
+        <div className="flex flex-col min-h-screen bg-white font-sans text-slate-950 antialiased">
             {notif && <Notification message={notif.msg} type={notif.type} onClose={() => setNotif(null)} />}
             
-            <header className="fixed top-0 w-full bg-white/95 backdrop-blur-lg border-b border-slate-100 z-[1000] h-20 flex justify-between items-center px-4 lg:px-6">
-                <button onClick={() => navigate(PAGES.HOME)} className="flex items-center space-x-2 lg:space-x-3 outline-none group z-50">
-                    <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-600 rounded-[10px] flex items-center justify-center shadow-md group-hover:rotate-6 transition-all"><LogoIcon /></div>
-                    <span className="text-lg lg:text-xl font-black tracking-tighter uppercase leading-none group-hover:text-blue-600 transition-colors">Tenda Care</span>
-                </button>
-                
-                {/* Desktop Nav */}
-                <nav className="hidden lg:flex items-center space-x-2">
-                    {NAV_ITEMS.map((item) => {
-                        if (item.id === PAGES.HOME) return null; 
-                        return (
-                            <button key={item.id} onClick={() => navigate(item.id)} className={`flex items-center space-x-1.5 px-4 py-2.5 font-black uppercase text-[10px] tracking-widest transition-all rounded-full ${currentPage === item.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-700'}`}>
-                                {item.icon}<span>{item.label}</span>
-                            </button>
-                        );
-                    })}
-                </nav>
+            {/* Top Header - Restructured for Mobile Scrollable Nav */}
+            <header className="fixed top-0 w-full z-[1000] bg-white/95 backdrop-blur-lg border-b border-slate-100 flex flex-col">
+                {/* Top Row: Logo & Actions */}
+                <div className="h-20 flex justify-between items-center px-4 lg:px-6">
+                    <button onClick={() => navigate(PAGES.HOME)} className="flex items-center space-x-2 lg:space-x-3 outline-none group z-50">
+                        <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-600 rounded-[10px] flex items-center justify-center shadow-md group-hover:rotate-6 transition-all"><LogoIcon /></div>
+                        <span className="text-lg lg:text-xl font-black tracking-tighter uppercase leading-none group-hover:text-blue-600 transition-colors">Tenda Care</span>
+                    </button>
+                    
+                    {/* Desktop Nav (Hidden on Mobile) */}
+                    <nav className="hidden lg:flex items-center space-x-2">
+                        {NAV_ITEMS.map((item) => {
+                            if (item.id === PAGES.HOME) return null; 
+                            return (
+                                <button key={item.id} onClick={() => navigate(item.id)} className={`flex items-center space-x-1.5 px-4 py-2.5 font-black uppercase text-[10px] tracking-widest transition-all rounded-full ${currentPage === item.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-700'}`}>
+                                    {item.icon}<span>{item.label}</span>
+                                </button>
+                            );
+                        })}
+                    </nav>
 
-                <div className="flex items-center space-x-2 lg:space-x-4">
-                    {/* Desktop & Mobile Auth Buttons */}
-                    <div className="hidden lg:flex items-center space-x-2 lg:space-x-4">
+                    <div className="flex items-center space-x-2 lg:space-x-4">
                         {!isLoggedIn ? (
                             <button onClick={() => setShowAuthModal(true)} className="flex items-center space-x-2 px-3 lg:px-5 py-2 lg:py-2.5 text-slate-600 hover:text-blue-600 font-black text-[10px] uppercase tracking-widest transition-colors"><UserCircle className="w-5 h-5 lg:w-4 lg:h-4" /> <span className="hidden lg:inline">Sign In</span></button>
                         ) : (
                             <button onClick={async () => { if(supabase) await supabase.auth.signOut(); setIsLoggedIn(false); setNotif({msg: "Logged out.", type: "info"}); }} className="flex items-center space-x-2 px-3 lg:px-5 py-2 lg:py-2.5 text-blue-600 font-black text-[10px] uppercase tracking-widest transition-colors"><UserCircle className="w-5 h-5 lg:w-4 lg:h-4" /> <span className="hidden lg:inline">Logout</span></button>
                         )}
-                        {/* Get Involved Button - visible on all screens */}
                         <button onClick={() => navigate(PAGES.GET_INVOLVED)} className="flex items-center space-x-1 lg:space-x-2 px-4 lg:px-6 py-2 lg:py-2.5 bg-slate-950 hover:bg-blue-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-md transition-all">
                             <span className="hidden sm:inline">JOIN ACTION</span><span className="sm:hidden">JOIN</span> <ArrowRight className="w-3 h-3 ml-1 lg:ml-0" />
                         </button>
                     </div>
+                </div>
 
-                    {/* Mobile Hamburger Toggle */}
-                    <button 
-                        className="lg:hidden p-2 text-slate-950 focus:outline-none hover:text-blue-600 transition-colors z-50"
-                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    >
-                        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                    </button>
+                {/* Bottom Row: Mobile Nav (Scrollable Horizontal Row) */}
+                <div className="lg:hidden flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] bg-slate-50 border-t border-slate-200 px-4 py-3 space-x-6 shadow-sm">
+                    {NAV_ITEMS.map((item) => {
+                        if (item.id === PAGES.HOME) return null; // Typically hidden on mobile if the Logo acts as Home
+                        const isActive = currentPage === item.id;
+                        return (
+                            <button 
+                                key={item.id} 
+                                onClick={() => navigate(item.id)} 
+                                className={`flex items-center space-x-2 whitespace-nowrap font-black uppercase text-[10px] tracking-widest transition-all pb-1 border-b-2 ${isActive ? 'text-blue-600 border-blue-600' : 'text-slate-500 border-transparent hover:text-blue-500'}`}
+                            >
+                                {React.cloneElement(item.icon, { className: 'w-4 h-4 mb-0' })}
+                                <span>{item.label}</span>
+                            </button>
+                        );
+                    })}
                 </div>
             </header>
 
-            {/* Mobile Full-Screen Menu Overlay */}
-            {isMobileMenuOpen && (
-                <div className="fixed inset-0 top-20 z-[999] bg-white border-t border-slate-100 p-6 flex flex-col space-y-6 lg:hidden overflow-y-auto animate-in fade-in duration-200">
-                    <nav className="flex flex-col space-y-3">
-                        {NAV_ITEMS.map((item) => {
-                            if (item.id === PAGES.HOME) return null;
-                            return (
-                                <button
-                                    key={item.id}
-                                    onClick={() => navigate(item.id)}
-                                    className={`flex items-center space-x-3 px-5 py-4 font-black uppercase text-xs tracking-widest transition-all rounded-2xl ${currentPage === item.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 bg-slate-50 hover:bg-blue-50 hover:text-blue-700'}`}
-                                >
-                                    {React.cloneElement(item.icon, { className: 'w-5 h-5 mb-0' })}<span className="ml-2">{item.label}</span>
-                                </button>
-                            );
-                        })}
-                    </nav>
-                    <div className="flex flex-col space-y-4 border-t border-slate-100 pt-6 mt-auto pb-8">
-                        {!isLoggedIn ? (
-                            <button onClick={() => {setShowAuthModal(true); setIsMobileMenuOpen(false);}} className="flex items-center justify-center space-x-2 px-5 py-4 bg-slate-50 text-slate-600 hover:text-blue-600 font-black text-xs uppercase tracking-widest rounded-2xl transition-colors"><UserCircle className="w-5 h-5" /> <span>Sign In</span></button>
-                        ) : (
-                            <button onClick={async () => { if(supabase) await supabase.auth.signOut(); setIsLoggedIn(false); setNotif({msg: "Logged out.", type: "info"}); setIsMobileMenuOpen(false); }} className="flex items-center justify-center space-x-2 px-5 py-4 bg-slate-50 text-blue-600 font-black text-xs uppercase tracking-widest rounded-2xl transition-colors"><UserCircle className="w-5 h-5" /> <span>Logout</span></button>
-                        )}
-                        <button onClick={() => {navigate(PAGES.GET_INVOLVED); setIsMobileMenuOpen(false);}} className="flex items-center justify-center space-x-2 px-6 py-4 bg-slate-950 hover:bg-blue-600 text-white text-xs font-black rounded-2xl uppercase tracking-widest shadow-md transition-all"><span>JOIN ACTION</span> <ArrowRight className="w-4 h-4" /></button>
-                    </div>
-                </div>
-            )}
-
-            <main className="flex-1 w-full pt-20">{renderPage()}</main>
+            {/* Main Content Area - Padding increased on mobile to account for the double-row header */}
+            <main className="flex-1 w-full pt-[120px] lg:pt-20">{renderPage()}</main>
 
             {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         </div>

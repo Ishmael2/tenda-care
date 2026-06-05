@@ -2014,7 +2014,7 @@ const App = () => {
                 {/* Top Row: Logo & Actions */}
                 <div className="h-20 flex justify-between items-center px-4 lg:px-6">
                     <button onClick={() => navigate(PAGES.HOME)} className="flex items-center space-x-2 lg:space-x-3 outline-none group z-50">
-                        <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-600 rounded-[10px] flex items-center justify-center shadow-md group-hover:rotate-6 transition-all"><LogoIcon /></div>
+                        <img src="/logo.png" alt="Tenda Care Logo" className="w-8 h-8 lg:w-10 lg:h-10 object-contain group-hover:scale-105 transition-all" />
                         <span className="text-lg lg:text-xl font-black tracking-tighter uppercase leading-none group-hover:text-blue-600 transition-colors">Tenda Care</span>
                     </button>
                     

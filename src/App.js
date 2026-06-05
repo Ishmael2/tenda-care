@@ -95,7 +95,7 @@ const HeroSection = ({ navigate }) => (
                 
                 <div className="mb-12">
                     <p className="text-lg lg:text-xl text-white font-bold mb-3 leading-relaxed">
-                        Tenda Care is a disability advocacy and innovation hub serving people with lived experience of disability, their caretakers, and allies across Africa.
+                        Tenda Care is a disability advocacy, research and innovation platform serving people with lived experience of disability, their caretakers, and allies across Africa.
                     </p>
                     <p className="text-base lg:text-lg text-slate-400 leading-relaxed font-medium max-w-2xl mx-auto lg:mx-0">
                         Whether you are navigating daily challenges or caring for a loved one, we are here. We design localized assistive technologies, conduct evidence-based research, provide specialized therapies, and champion inclusive policies.
@@ -161,7 +161,7 @@ const AboutSection = ({ navigate }) => {
                             </div>
                             <div className="flex items-center text-slate-600 font-medium">
                                 <Phone className="w-5 h-5 mr-4 text-blue-600" />
-                                <span>+254 (0) 700 000 000</span>
+                                <span>+254 (0) 708 597 855</span>
                             </div>
                             <div className="flex items-center text-slate-600 font-medium pt-4 border-t border-slate-100">
                                 <Users className="w-5 h-5 mr-4 text-blue-600" />
@@ -181,7 +181,7 @@ const AboutSection = ({ navigate }) => {
                         <div className="text-xl font-black text-slate-800 uppercase tracking-tighter">NCPWD Kenya</div>
                         <div className="text-xl font-black text-slate-800 uppercase tracking-tighter">Global A11y</div>
                         <div className="text-xl font-black text-slate-800 uppercase tracking-tighter">OpenAlex</div>
-                        <div className="text-xl font-black text-slate-800 uppercase tracking-tighter">UN CRPD</div>
+                        <div className="text-xl font-black text-slate-800 uppercase tracking-tighter">UN CRPD</div> 
                     </div>
                 </div>
             </div>
@@ -302,8 +302,8 @@ const PillarsSection = () => {
 const CoreTeamSection = () => {
     const RESEARCHERS = [
         { name: "Ishmael Mwangi", role: "Lead Solutions Architect", focus: "Software/hardware integration, PCB prototyping, and bridging inclusive urban development with embedded tech." },
-        { name: "Obed Tum", role: "M and E Specialist", focus: "Developing metrics, data collection systems, and impact evaluation frameworks to track the efficacy and reach of Tenda Care programs." },
-        { name: "Tom Joe", role: "Senior Researcher", focus: "Leading advanced studies into assistive technology adoption, localization strategies for equipment, and user-centric design principles." },
+        { name: "Obed Tum", role: "Project management Monitoring & Evaluation Specialist", focus: "Developing metrics, data collection systems, and impact evaluation frameworks to track the efficacy and reach of Tenda Care programs." },
+        { name: "Tom Joe", role: "Researcher Specialist lead", focus: "Leading advanced studies into assistive technology adoption, localization strategies for equipment, and user-centric design principles." },
         { name: "Diana Thanya", role: "Lead Training Officer", focus: "Designing and executing comprehensive training curricula for caregivers, staff, and advocates on assistive device usage, soft skills, and rights advocacy." }
     ];
 

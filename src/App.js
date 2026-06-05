@@ -47,11 +47,11 @@ const STATIC_CONTENT = {
 };
 
 // --- Sub-Components ---
-const LogoIcon = () => (
+/*const LogoIcon = () => (
     <svg viewBox="0 0 24 24" className="w-6 h-6 text-white transition-transform hover:scale-110">
         <circle cx="12" cy="12" r="9" fill="currentColor" />
     </svg>
-);
+);*/
 
 const Notification = ({ message, type, onClose }) => (
   <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[3000] animate-in fade-in slide-in-from-top-4 duration-500 w-full max-w-sm px-6">

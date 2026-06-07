@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Circle as LucideCircle, Globe, Users, ArrowRight, Activity, Search, X, CreditCard, MapPin, Stethoscope, Scale, Briefcase, GraduationCap, HeartPulse, Heart, Plus, CheckCircle2, Info, ChevronRight, RefreshCw, ExternalLink, Home, BookOpen, Microscope, ArrowRightLeft, Megaphone, Upload, Calendar, Clock, Wrench, MessageSquare, Eye, Tag, User, AlignLeft, UserCircle, ChevronLeft, ImageIcon, FileText, Cpu, Settings, Map, Compass, ClipboardList, FileSearch, Target, Lightbulb, Phone, Mail, Handshake, BookOpenCheck, Award, Book, Library, Building2, PhoneCall, AlertTriangle
+  Circle as LucideCircle, Globe, Users, ArrowRight, Activity, Search, X, CreditCard, MapPin, Stethoscope, Scale, Briefcase, GraduationCap, HeartPulse, Heart, Plus, CheckCircle2, Info, ChevronRight, RefreshCw, ExternalLink, Home, BookOpen, Microscope, ArrowRightLeft, Megaphone, Upload, Calendar, Clock, Wrench, MessageSquare, Eye, Tag, User, AlignLeft, ChevronLeft, ImageIcon, FileText, Cpu, Settings, Map, Compass, Menu, ClipboardList, FileSearch, Target, Lightbulb, Phone, Mail, Handshake, BookOpenCheck, Award, Book, Library, Building2, PhoneCall, AlertTriangle
 } from 'lucide-react';
 
-import Login from './components/Login'; 
 import { supabase } from './supabaseClient'; 
 
 // --- Constants & Data ---
@@ -47,32 +46,30 @@ const STATIC_CONTENT = {
 };
 
 // --- Sub-Components ---
-/*const LogoIcon = () => (
+const LogoIcon = () => (
     <svg viewBox="0 0 24 24" className="w-6 h-6 text-white transition-transform hover:scale-110">
         <circle cx="12" cy="12" r="9" fill="currentColor" />
     </svg>
-);*/
-
-const Notification = ({ message, type, onClose }) => (
-  <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[3000] animate-in fade-in slide-in-from-top-4 duration-500 w-full max-w-sm px-6">
-    <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center space-x-3 border-2 backdrop-blur-md ${type === 'success' ? 'bg-slate-900/90 text-white border-green-500' : 'bg-red-50/90 text-red-900 border-red-200'}`}>
-      {type === 'success' ? <CheckCircle2 className="text-green-500 w-5 h-5 flex-shrink-0" /> : <Info className="text-red-500 w-5 h-5 flex-shrink-0" />}
-      <span className="font-bold text-sm">{message}</span>
-      <button onClick={onClose} className="ml-auto hover:opacity-70 p-1"><X className="w-4 h-4" /></button>
-    </div>
-  </div>
 );
 
-const AuthModal = ({ onClose }) => (
-    <div className="fixed inset-0 z-[4000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-300">
-        <div className="relative w-full max-w-[400px]">
-            <button onClick={onClose} className="absolute top-4 right-4 z-50 p-2 bg-white/10 hover:bg-blue-600 text-white rounded-full transition-all" aria-label="Close modal">
-                <X className="w-5 h-5"/>
-            </button>
-            <Login />
-        </div>
+const Notification = ({ message, type, onClose }) => {
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[3000] animate-in fade-in slide-in-from-top-4 duration-500 w-full max-w-sm px-6">
+      <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center space-x-3 border-2 backdrop-blur-md ${type === 'success' ? 'bg-slate-900/90 text-white border-green-500' : 'bg-red-50/90 text-red-900 border-red-200'}`}>
+        {type === 'success' ? <CheckCircle2 className="text-green-500 w-5 h-5 flex-shrink-0" /> : <Info className="text-red-500 w-5 h-5 flex-shrink-0" />}
+        <span className="font-bold text-sm">{message}</span>
+        <button onClick={onClose} className="ml-auto hover:opacity-70 p-1"><X className="w-4 h-4" /></button>
+      </div>
     </div>
-);
+  );
+};
 
 // ----------- PAGE COMPONENTS -----------
 
@@ -157,7 +154,7 @@ const AboutSection = ({ navigate }) => {
                             </div>
                             <div className="flex items-center text-slate-600 font-medium">
                                 <Mail className="w-5 h-5 mr-4 text-blue-600" />
-                                <span>hello@tendacare.org</span>
+                                <span>hello@tenda-care.com</span>
                             </div>
                             <div className="flex items-center text-slate-600 font-medium">
                                 <Phone className="w-5 h-5 mr-4 text-blue-600" />
@@ -827,6 +824,7 @@ const ResourcesPage = ({ setNotif }) => {
 const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
     const [selected, setSelected] = useState(null);
     const [isBooking, setIsBooking] = useState(false);
+    const [generalBookingCategory, setGeneralBookingCategory] = useState(null); // 'Therapy' or 'Caregiver Support'
 
     const pwdServices = [
         { 
@@ -915,7 +913,7 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
     const caregiverServices = [
         { 
             id: 201, title: "Caregiver Mental Health Support", category: "Caregiver Support",
-            targetRole: "Counselor", icon: <HeartPulse />, 
+            targetRole: "Clinical Psychologist", icon: <HeartPulse />, 
             desc: "Counseling to manage the emotional demands of caregiving.", 
             detail: "Caregivers require structured support because caregiving can lead to burnout, emotional stress, and financial strain. We provide safe spaces for emotional processing.", 
             supports: ["Burnout prevention", "Stress management", "Emotional fatigue recovery", "Anxiety and depression counseling"],
@@ -923,7 +921,7 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
         },
         { 
             id: 202, title: "Parent / Caregiver Training", category: "Caregiver Support",
-            targetRole: "Training Officer", icon: <GraduationCap />, 
+            targetRole: "Special Education Expert", icon: <GraduationCap />, 
             desc: "Teaching caregivers how to support therapy goals at home.", 
             detail: "Empowering families with the skills needed to reinforce clinical therapies within the home environment safely.", 
             supports: ["Behavior management", "Communication strategies", "Sensory regulation techniques", "Daily routine structuring", "Feeding support"],
@@ -939,14 +937,14 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
         },
         { 
             id: 204, title: "Caregiver Support Groups", category: "Caregiver Support",
-            targetRole: "Group Facilitator", icon: <Users />, 
+            targetRole: "Caregiver / Caretaker", icon: <Users />, 
             desc: "Peer learning and emotional support networks.", 
             detail: "Facilitated community groups that bring caretakers together to share knowledge and reduce isolation.", 
             supports: ["Shared experiences", "Reduced isolation", "Practical caregiving tips", "Community building"],
             baseTherapists: [{ name: "David Njuguna", role: "Community Facilitator" }]
         },
         { 
-            id: 205, title: "Financial & Social Support Services", category: "Caregiver Support",
+            id: 205, title: " Social Support Services", category: "Caregiver Support",
             targetRole: "Social Worker", icon: <CreditCard />, 
             desc: "Navigating grants, insurance, and government assistance.", 
             detail: "Expert guidance to help families access the financial and social frameworks designed to support them.", 
@@ -966,7 +964,7 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
         <div className="py-24 bg-slate-50 min-h-screen px-6 text-left selection:bg-slate-900 selection:text-white">
             <div className="max-w-7xl mx-auto">
                 
-                <div className="max-w-3xl mb-20">
+                <div className="max-w-3xl mb-12">
                     <p className="text-blue-600 font-black tracking-widest uppercase mb-3 text-xs">Wellness Ecosystem</p>
                     <h2 className="text-5xl lg:text-7xl font-black text-slate-950 tracking-tighter leading-[0.9] mb-8 uppercase">Support</h2>
                     <p className="text-lg text-slate-500 font-medium leading-relaxed">Closing the gap between clinical healthcare, caregiver resilience, and corporate career success.</p>
@@ -974,17 +972,26 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
 
                 {/* Section 1: PWD Therapies */}
                 <div className="mb-24">
-                    <h3 className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-slate-950 mb-8 border-b border-slate-200 pb-4">Therapies for Lived Experience</h3>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-slate-200 pb-4 gap-4">
+                        <h3 className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-slate-950">Therapies for Lived Experience</h3>
+                        <button 
+                            onClick={() => setGeneralBookingCategory('Therapy')} 
+                            className="flex items-center px-5 py-2.5 border-2 border-slate-950 text-slate-950 hover:bg-slate-950 hover:text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all"
+                        >
+                            Book Service <ArrowRight className="w-4 h-4 ml-2" />
+                        </button>
+                    </div>
+                    
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {pwdServices.map(s => {
                         const hydrated = hydrateService(s);
                         return (
-                        <button key={s.id} onClick={() => setSelected(hydrated)} className="bg-white p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex flex-col items-start border border-slate-100 hover:border-blue-200 text-left outline-none h-full">
+                        <button key={s.id} onClick={() => setSelected(hydrated)} className="bg-white p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex flex-col items-start border border-slate-100 hover:border-blue-200 text-left outline-none h-full relative overflow-hidden">
                             <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all">{s.icon}</div>
                             <h3 className="text-xl font-black mb-3 uppercase tracking-tight text-slate-950 leading-tight group-hover:text-blue-600 transition-colors">{s.title}</h3>
                             <p className="text-slate-500 font-medium mb-8 leading-relaxed flex-grow text-sm">{s.desc}</p>
                             <div className="mt-auto pt-4 border-t border-slate-100 w-full flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-blue-600 transition-colors">
-                                View Details <ArrowRight className="w-3 h-3" />
+                                View Details & Book <ArrowRight className="w-3 h-3" />
                             </div>
                         </button>
                     )})}
@@ -993,17 +1000,26 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
 
                 {/* Section 2: Caregiver Ecosystem */}
                 <div>
-                    <h3 className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-slate-950 mb-8 border-b border-slate-200 pb-4">Caregiver & Caretaker Ecosystem</h3>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-slate-200 pb-4 gap-4">
+                        <h3 className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-slate-950">Caregiver & Caretaker Ecosystem</h3>
+                        <button 
+                            onClick={() => setGeneralBookingCategory('Caregiver Support')} 
+                            className="flex items-center px-5 py-2.5 border-2 border-slate-950 text-slate-950 hover:bg-slate-950 hover:text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all"
+                        >
+                            Book Support <ArrowRight className="w-4 h-4 ml-2" />
+                        </button>
+                    </div>
+
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {caregiverServices.map(s => {
                         const hydrated = hydrateService(s);
                         return (
-                        <button key={s.id} onClick={() => setSelected(hydrated)} className="bg-white p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex flex-col items-start border border-slate-100 hover:border-blue-200 text-left outline-none h-full">
+                        <button key={s.id} onClick={() => setSelected(hydrated)} className="bg-white p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex flex-col items-start border border-slate-100 hover:border-blue-200 text-left outline-none h-full relative overflow-hidden">
                             <div className="w-14 h-14 bg-slate-950 rounded-xl flex items-center justify-center text-white mb-6 group-hover:bg-blue-600 transition-all">{s.icon}</div>
                             <h3 className="text-xl font-black mb-3 uppercase tracking-tight text-slate-950 leading-tight group-hover:text-blue-600 transition-colors">{s.title}</h3>
                             <p className="text-slate-500 font-medium mb-8 leading-relaxed flex-grow text-sm">{s.desc}</p>
                             <div className="mt-auto pt-4 border-t border-slate-100 w-full flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-blue-600 transition-colors">
-                                View Details <ArrowRight className="w-3 h-3" />
+                                View Details & Book <ArrowRight className="w-3 h-3" />
                             </div>
                         </button>
                     )})}
@@ -1011,10 +1027,16 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
                 </div>
             </div>
             
-            {/* THERAPY BOOKING MODAL */}
+            {/* THERAPY BOOKING MODAL (Specific Service Selection) */}
             {selected && (
-                <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar">
+                <div 
+                    className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300"
+                    onClick={() => { setSelected(null); setIsBooking(false); }} // Click outside to close
+                >
+                    <div 
+                        className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
+                        onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
+                    >
                         <button onClick={() => {setSelected(null); setIsBooking(false);}} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all"><X className="w-5 h-5"/></button>
                         
                         <span className="inline-block px-3 py-1 bg-slate-100 text-slate-600 font-black text-[9px] uppercase tracking-widest rounded-md mb-4 mt-2">{selected.category}</span>
@@ -1064,13 +1086,21 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
                                         ))}
                                     </div>
                                 </div>
-                                <button onClick={() => setIsBooking(true)} className="w-full py-5 bg-blue-600 text-white font-black rounded-full shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-blue-700 transition-all">BOOK SESSION</button>
+                                <button onClick={() => setIsBooking(true)} className="w-full py-5 bg-blue-600 text-white font-black rounded-full shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-blue-700 transition-all">PROCEED TO BOOKING</button>
                             </>
                         ) : (
-                            <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); setNotif({msg: "Booking confirmed.", type: "success"}); setSelected(null); setIsBooking(false); }}>
+                            <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); setNotif({msg: "Booking confirmed. A specialist will reach out shortly.", type: "success"}); setSelected(null); setIsBooking(false); }}>
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Patient / Caretaker Details</label>
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Patient / Caretaker Name</label>
                                     <input placeholder="Full Legal Name" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Contact Information</label>
+                                    <input placeholder="Email or Phone Number" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Preferred Schedule</label>
+                                    <input type="date" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
                                 </div>
                                 <div className="flex gap-4 pt-4">
                                     <button type="button" onClick={() => setIsBooking(false)} className="px-6 py-5 bg-slate-100 text-slate-500 font-black rounded-full uppercase tracking-[0.2em] text-xs hover:bg-slate-200">BACK</button>
@@ -1078,6 +1108,56 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
                                 </div>
                             </form>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* GENERAL BOOKING MODAL (From Section Headers) */}
+            {generalBookingCategory && (
+                <div 
+                    className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300"
+                    onClick={() => setGeneralBookingCategory(null)}
+                >
+                    <div 
+                        className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button onClick={() => setGeneralBookingCategory(null)} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all z-10"><X className="w-5 h-5"/></button>
+                        
+                        <div className="flex items-center space-x-3 mb-6 pt-4">
+                            <div className="w-12 h-12 bg-slate-950 text-white rounded-xl flex items-center justify-center shadow-lg"><Activity className="w-6 h-6" /></div>
+                            <div>
+                                <h3 className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-slate-950 leading-none">Book {generalBookingCategory}</h3>
+                                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">General Admission</p>
+                            </div>
+                        </div>
+
+                        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); setNotif({msg: "Booking request received. Our coordinator will contact you to assign a specialist.", type: "success"}); setGeneralBookingCategory(null); }}>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Patient / Caretaker Name</label>
+                                <input placeholder="Full Legal Name" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Contact Information</label>
+                                <input placeholder="Email or Phone Number" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Specific Service Needed</label>
+                                <select required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
+                                    <option value="">Select a specific area...</option>
+                                    {generalBookingCategory === 'Therapy' ? (
+                                        pwdServices.map(s => <option key={s.id} value={s.title}>{s.title}</option>)
+                                    ) : (
+                                        caregiverServices.map(s => <option key={s.id} value={s.title}>{s.title}</option>)
+                                    )}
+                                    <option value="Not Sure">Not Sure / Needs Assessment</option>
+                                </select>
+                            </div>
+                            <div className="flex gap-4 pt-4 border-t border-slate-100 mt-6">
+                                <button type="button" onClick={() => setGeneralBookingCategory(null)} className="px-6 py-5 bg-slate-100 text-slate-500 font-black rounded-full uppercase tracking-[0.2em] text-xs hover:bg-slate-200">CANCEL</button>
+                                <button type="submit" className="flex-1 py-5 bg-slate-950 text-white font-black rounded-full shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-slate-800">CONFIRM BOOKING</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
@@ -1195,7 +1275,7 @@ const ResearchPage = ({ setNotif }) => {
                 <p className="text-lg text-slate-500 font-medium leading-relaxed italic">"Pioneering localized hardware solutions and inclusive research from our Nairobi base."</p>
             </div>
 
-            {/* 1. FIELD RESEARCH & ACADEMIC SUPPORT (Now prominent at the top) */}
+            {/* 1. FIELD RESEARCH & ACADEMIC SUPPORT */}
             <div className="mb-32">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-slate-100 pb-4 gap-4">
                     <div className="flex items-center">
@@ -1335,8 +1415,14 @@ const ResearchPage = ({ setNotif }) => {
 
             {/* MODAL: SPECIFIC RESEARCH SERVICE DETAILS */}
             {selectedResearchService && (
-                <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar">
+                <div 
+                    className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300"
+                    onClick={() => setSelectedResearchService(null)}
+                >
+                    <div 
+                        className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button onClick={() => setSelectedResearchService(null)} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all z-10"><X className="w-5 h-5"/></button>
                         
                         <div className="mb-8 border-b border-slate-100 pb-6 pt-4">
@@ -1375,8 +1461,14 @@ const ResearchPage = ({ setNotif }) => {
 
             {/* MODAL: REPAIR BOOKING */}
             {showRepairBooking && (
-                <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar">
+                <div 
+                    className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300"
+                    onClick={() => { setShowRepairBooking(false); setRepairImages([]); }}
+                >
+                    <div 
+                        className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button onClick={() => { setShowRepairBooking(false); setRepairImages([]); }} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all z-10"><X className="w-5 h-5"/></button>
                         
                         <div className="flex items-center space-x-3 mb-6 pt-4">
@@ -1458,9 +1550,15 @@ const ResearchPage = ({ setNotif }) => {
 
             {/* MODAL: RESEARCH SERVICES BOOKING */}
             {showResearchBooking && (
-                <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300 text-left">
-                    <div className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar">
-                        <button onClick={() => { setShowResearchBooking(false); setResearchDocs([]); }} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all z-10"><X className="w-5 h-5"/></button>
+                <div 
+                    className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300 text-left"
+                    onClick={() => { setShowResearchBooking(false); setResearchDocs([]); }}
+                >
+                    <div 
+                        className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button onClick={() => { setShowResearchBooking(false); setResearchDocs([]); }} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-600 transition-all z-10"><X className="w-5 h-5"/></button>
                         
                         <div className="flex items-center space-x-3 mb-6 pt-4">
                             <div className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg"><FileSearch className="w-6 h-6" /></div>
@@ -1490,6 +1588,18 @@ const ResearchPage = ({ setNotif }) => {
                                     <option value="full_team">Full Research Team Deployment</option>
                                     <option value="consultation">General Ideation & Ethics Consultation</option>
                                 </select>
+                            </div>
+                            
+                            {/* UPDATED: Location & Timeline */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Project Timeline</label>
+                                    <input placeholder="e.g., 3 Months" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Location</label>
+                                    <input placeholder="e.g., Nairobi, Kenya" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                </div>
                             </div>
 
                             {/* RESEARCH DOCUMENT UPLOAD */}
@@ -1540,6 +1650,7 @@ const ExchangePage = ({ setNotif }) => {
     const [view, setView] = useState('list');
     const [selectedType, setSelectedType] = useState("");
     const [search, setSearch] = useState("");
+    const [donorInputName, setDonorInputName] = useState("");
     
     // DB Items State
     const [items, setItems] = useState([]);
@@ -1629,20 +1740,13 @@ const ExchangePage = ({ setNotif }) => {
                             }
                         }
 
-                        let donorName = "Anonymous";
-                        const { data: { session } } = await supabase.auth.getSession();
-                        if (session?.user) {
-                            const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).maybeSingle();
-                            if (profile && profile.full_name) donorName = profile.full_name;
-                        }
-
                         const newRecord = {
                             name,
                             device_type: selectedType,
                             condition,
                             description,
                             defects,
-                            donor: donorName,
+                            donor: donorInputName || "Anonymous",
                             image_urls: uploadedUrls
                         };
 
@@ -1660,6 +1764,7 @@ const ExchangePage = ({ setNotif }) => {
                         setNotif({msg: "Device successfully added to the global exchange!", type: "success"}); 
                         setView('list'); 
                         setImageFiles([]);
+                        setDonorInputName("");
 
                     } catch (err) {
                         setNotif({msg: err.message, type: "error"});
@@ -1668,6 +1773,15 @@ const ExchangePage = ({ setNotif }) => {
                     }
                 }}>
                     <input name="name" placeholder="Item Nomenclature (e.g. Model X)" className="w-full p-5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold focus:border-blue-500" required />
+                    
+                    <input 
+                        name="donor" 
+                        value={donorInputName} 
+                        onChange={(e) => setDonorInputName(e.target.value)} 
+                        placeholder="Donor Name (Leave blank for Anonymous)" 
+                        className="w-full p-5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold focus:border-blue-500" 
+                    />
+
                     <select name="condition" className="w-full p-5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" required>
                         <option value="">Select Overall Condition...</option>
                         <option value="Mint / Boxed">Mint / Boxed</option>
@@ -1769,8 +1883,14 @@ const ExchangePage = ({ setNotif }) => {
 
             {/* ITEM DETAILS MODAL & SLIDESHOW */}
             {selectedItem && (
-                <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar">
+                <div 
+                    className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300"
+                    onClick={() => setSelectedItem(null)}
+                >
+                    <div 
+                        className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button onClick={() => setSelectedItem(null)} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all z-10"><X className="w-5 h-5"/></button>
                         
                         <div className="mb-6 border-b border-slate-100 pb-6">
@@ -1828,7 +1948,7 @@ const ExchangePage = ({ setNotif }) => {
     );
 };
 
-const GetInvolvedPage = ({ setNotif, onAddSpecialist }) => {
+const GetInvolvedPage = ({ setNotif, onAddSpecialist, dynamicSpecialists }) => {
     const [view, setView] = useState('choice');
     const [role, setRole] = useState("");
     const [consentToDisplay, setConsentToDisplay] = useState(false);
@@ -1867,31 +1987,24 @@ const GetInvolvedPage = ({ setNotif, onAddSpecialist }) => {
                     const mission = e.target.elements.mission.value;
 
                     try {
-                        const { data: existingUser } = await supabase.from('profiles').select('email').eq('email', email).maybeSingle();
-                        if (existingUser) throw new Error("An account with this email already exists. Please log in first.");
-
-                        const tempPassword = Math.random().toString(36).slice(-12) + 'Tenda1!';
-                        const { data: authData, error: authError } = await supabase.auth.signUp({
-                            email: email, password: tempPassword, options: { data: { full_name: name, role: role } }
-                        });
-
-                        if (authError) throw authError;
-
-                        if (!authData.user || !authData.user.id) {
-                            throw new Error("This email is already registered in the authentication system. Please switch to Log In to continue.");
-                        }
-
                         const { error: dbError } = await supabase.from('profiles').insert([{
-                            id: authData.user?.id, email: email, full_name: name, role: role, mission_statement: mission, public_consent: consentToDisplay
+                            email: email, full_name: name, role: role, mission_statement: mission, public_consent: consentToDisplay
                         }]);
 
-                        if (dbError) throw dbError;
+                        if (dbError) {
+                            if(dbError.code === '23505' || dbError.message.includes('duplicate')) {
+                                throw new Error("This email is already registered in our system.");
+                            }
+                            throw dbError;
+                        }
 
                         if(consentToDisplay) onAddSpecialist({ name, role }); 
-                        setNotif({msg: "Profile created! Check your email for the secure access link.", type: "success"}); 
+                        setNotif({msg: "Your profile has been submitted and added to our public directory!", type: "success"}); 
                         setView('choice');
 
                     } catch (error) { setNotif({msg: error.message, type: "error"}); } finally { setIsSubmitting(false); }
+
+                    
                 }}>
                     <div>
                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Identity Details</label>
@@ -1912,7 +2025,7 @@ const GetInvolvedPage = ({ setNotif, onAddSpecialist }) => {
                     </div>
                     
                     <button type="submit" disabled={isSubmitting} className="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-full uppercase tracking-[0.2em] text-xs shadow-lg flex items-center justify-center">
-                        {isSubmitting ? "PROCESSING..." : "SEND APPLICATION"}
+                        {isSubmitting ? "PROCESSING..." : "SUBMIT PROFILE"}
                     </button>
                     <button type="button" onClick={() => setView('choice')} disabled={isSubmitting} className="w-full py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-blue-600">Cancel & Go Back</button>
                 </form>
@@ -1921,20 +2034,59 @@ const GetInvolvedPage = ({ setNotif, onAddSpecialist }) => {
     );
 
     return (
-        <div className="bg-blue-600 min-h-screen text-white text-center relative overflow-hidden flex flex-col items-center justify-center pt-24 pb-32">
-            <Globe className="absolute -right-40 -top-40 w-[600px] h-[600px] text-white/5 rotate-12" />
-            <div className="max-w-7xl mx-auto px-6 relative z-10 w-full">
+        <div className="bg-slate-50 min-h-screen text-slate-950 relative overflow-hidden flex flex-col pt-24 pb-32">
+            <div className="absolute top-0 left-0 w-full h-[600px] bg-blue-600 -z-10 rounded-b-[4rem] pointer-events-none">
+                <Globe className="absolute -right-40 -top-40 w-[600px] h-[600px] text-white/5 rotate-12" />
+            </div>
+
+            <div className="max-w-7xl mx-auto px-6 relative z-10 w-full mb-32 text-center text-black pt-10">
                 <h2 className="text-6xl lg:text-[10rem] font-black mb-12 tracking-tighter uppercase leading-[0.8]">JOIN THE <br />FORCE</h2>
-                <p className="text-lg lg:text-xl text-blue-100 max-w-2xl mx-auto mb-12 font-medium">We welcome advocates, caretakers, and professionals to join our network and support the community.</p>
+                <p className="text-lg lg:text-xl text-blue-400 max-w-2xl mx-auto font-medium">We welcome advocates, caretakers, and professionals to join our network and support the community.</p>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-6 relative z-10 w-full mb-32 -mt-20">
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {roles.map((r, i) => (
                     <button key={i} onClick={() => { setRole(r.title); setView('signup'); setConsentToDisplay(false); }} className={`${r.color} p-8 lg:p-10 rounded-[2rem] text-left group hover:-translate-y-2 transition-all shadow-xl flex flex-col justify-between min-h-[250px] relative border border-white/10`}>
                         <div><h3 className="text-2xl font-black mb-4 leading-tight uppercase tracking-tighter text-white">{r.title}</h3><p className="text-white/60 font-bold text-[10px] uppercase tracking-widest">{r.sub}</p></div>
-                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-slate-950 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-md mt-6"><ArrowRight className="w-5 h-5" /></div>
+                        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-slate-950 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-md mt-6"><ArrowRight className="w-5 h-5" /></div>
                     </button>
                 ))}
                 </div>
             </div>
+
+            {/* PUBLIC DIRECTORY */}
+            <div className="max-w-7xl mx-auto px-6 w-full pt-10 border-t border-slate-200">
+                <div className="flex items-center space-x-4 mb-10">
+                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center"><Users className="w-6 h-6" /></div>
+                    <div>
+                        <h3 className="text-3xl font-black text-slate-950 uppercase tracking-tighter">Community Directory</h3>
+                        <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">Active Professionals & Caregivers</p>
+                    </div>
+                </div>
+
+                {dynamicSpecialists.length === 0 ? (
+                    <div className="text-center p-12 bg-white rounded-[2rem] border border-slate-200 border-dashed">
+                        <Users className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                        <p className="text-slate-500 font-medium">No public profiles found yet. Be the first to join the movement!</p>
+                    </div>
+                ) : (
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {dynamicSpecialists.map((person, index) => (
+                            <div key={index} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start space-x-4">
+                                <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <User className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h4 className="font-black text-slate-950 tracking-tight leading-tight mb-1">{person.name}</h4>
+                                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">{person.role}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
         </div>
     );
 };
@@ -1947,27 +2099,30 @@ const App = () => {
         return Object.values(PAGES).includes(hash) ? hash : PAGES.HOME;
     });
     
-    const [isAuthReady, setIsAuthReady] = useState(false);
     const [notif, setNotif] = useState(null);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     
     // Global State
     const [dynamicSpecialists, setDynamicSpecialists] = useState([]);
 
+    // Fetch Public Profiles on Load
     useEffect(() => {
-        if (supabase) {
-            supabase.auth.getSession().then(({ data: { session } }) => setIsLoggedIn(!!session));
-            const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-                setIsLoggedIn(!!session);
-                if (session) setShowAuthModal(false);
-            });
-            return () => subscription?.unsubscribe();
-        }
+        const fetchSpecialists = async () => {
+            if (supabase) {
+                try {
+                    const { data, error } = await supabase.from('profiles').select('full_name, role').eq('public_consent', true);
+                    if (data && !error) {
+                        const formatted = data.map(p => ({ name: p.full_name, role: p.role }));
+                        setDynamicSpecialists(formatted);
+                    }
+                } catch (err) {
+                    console.error("Could not fetch specialists.");
+                }
+            }
+        };
+        fetchSpecialists();
     }, []);
 
-    useEffect(() => { setTimeout(() => setIsAuthReady(true), 800); }, []);
-    
     // 2. Listen for Hash Changes (Browser Back/Forward buttons)
     useEffect(() => { 
         const handleHashChange = () => {
@@ -1975,6 +2130,7 @@ const App = () => {
             const validPage = Object.values(PAGES).includes(hash) ? hash : PAGES.HOME;
             setCurrentPage(validPage);
             window.scrollTo({ top: 0, behavior: 'smooth' }); 
+            setIsMobileMenuOpen(false); // Close menu on navigation
         };
 
         window.addEventListener('hashchange', handleHashChange);
@@ -1993,10 +2149,9 @@ const App = () => {
     };
 
     const renderPage = () => {
-        if (!isAuthReady) return <div className="fixed inset-0 bg-slate-950 flex justify-center items-center"><div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>;
         switch (currentPage) {
             case PAGES.THERAPIES: return <TherapiesPage setNotif={setNotif} dynamicSpecialists={dynamicSpecialists} />;
-            case PAGES.GET_INVOLVED: return <GetInvolvedPage setNotif={setNotif} onAddSpecialist={(spec) => setDynamicSpecialists([...dynamicSpecialists, spec])} />;
+            case PAGES.GET_INVOLVED: return <GetInvolvedPage setNotif={setNotif} onAddSpecialist={(spec) => setDynamicSpecialists([...dynamicSpecialists, spec])} dynamicSpecialists={dynamicSpecialists} />;
             case PAGES.RESOURCES: return <ResourcesPage setNotif={setNotif} />;
             case PAGES.RESEARCH: return <ResearchPage setNotif={setNotif} />;
             case PAGES.EXCHANGE: return <ExchangePage setNotif={setNotif} />;
@@ -2006,7 +2161,7 @@ const App = () => {
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-white font-sans text-slate-950 antialiased">
+        <div className="flex flex-col min-h-screen bg-white font-sans text-slate-950 antialiased pb-0 lg:pb-0">
             {notif && <Notification message={notif.msg} type={notif.type} onClose={() => setNotif(null)} />}
             
             {/* Top Header - Restructured for Mobile Scrollable Nav */}
@@ -2031,21 +2186,24 @@ const App = () => {
                     </nav>
 
                     <div className="flex items-center space-x-2 lg:space-x-4">
-                        {!isLoggedIn ? (
-                            <button onClick={() => setShowAuthModal(true)} className="flex items-center space-x-2 px-3 lg:px-5 py-2 lg:py-2.5 text-slate-600 hover:text-blue-600 font-black text-[10px] uppercase tracking-widest transition-colors"><UserCircle className="w-5 h-5 lg:w-4 lg:h-4" /> <span className="hidden lg:inline">Sign In</span></button>
-                        ) : (
-                            <button onClick={async () => { if(supabase) await supabase.auth.signOut(); setIsLoggedIn(false); setNotif({msg: "Logged out.", type: "info"}); }} className="flex items-center space-x-2 px-3 lg:px-5 py-2 lg:py-2.5 text-blue-600 font-black text-[10px] uppercase tracking-widest transition-colors"><UserCircle className="w-5 h-5 lg:w-4 lg:h-4" /> <span className="hidden lg:inline">Logout</span></button>
-                        )}
                         <button onClick={() => navigate(PAGES.GET_INVOLVED)} className="flex items-center space-x-1 lg:space-x-2 px-4 lg:px-6 py-2 lg:py-2.5 bg-slate-950 hover:bg-blue-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-md transition-all">
                             <span className="hidden sm:inline">JOIN ACTION</span><span className="sm:hidden">JOIN</span> <ArrowRight className="w-3 h-3 ml-1 lg:ml-0" />
                         </button>
                     </div>
+
+                    {/* Mobile Hamburger Toggle (Always Visible on Small Screens) */}
+                    <button 
+                        className="lg:hidden p-2 text-slate-950 focus:outline-none hover:text-blue-600 transition-colors z-50"
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    >
+                        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                    </button>
                 </div>
 
                 {/* Bottom Row: Mobile Nav (Scrollable Horizontal Row) */}
                 <div className="lg:hidden flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] bg-slate-50 border-t border-slate-200 px-4 py-3 space-x-6 shadow-sm">
                     {NAV_ITEMS.map((item) => {
-                        if (item.id === PAGES.HOME) return null; // Typically hidden on mobile if the Logo acts as Home
+                        if (item.id === PAGES.HOME) return null; 
                         const isActive = currentPage === item.id;
                         return (
                             <button 
@@ -2061,10 +2219,32 @@ const App = () => {
                 </div>
             </header>
 
+            {/* Mobile Full-Screen Menu Overlay */}
+            {isMobileMenuOpen && (
+                <div className="fixed inset-0 top-20 z-[999] bg-white border-t border-slate-100 p-6 flex flex-col space-y-6 lg:hidden overflow-y-auto animate-in fade-in duration-200">
+                    <nav className="flex flex-col space-y-3">
+                        {NAV_ITEMS.map((item) => {
+                            if (item.id === PAGES.HOME) return null;
+                            return (
+                                <button
+                                    key={item.id}
+                                    onClick={() => navigate(item.id)}
+                                    className={`flex items-center space-x-3 px-5 py-4 font-black uppercase text-xs tracking-widest transition-all rounded-2xl ${currentPage === item.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 bg-slate-50 hover:bg-blue-50 hover:text-blue-700'}`}
+                                >
+                                    {React.cloneElement(item.icon, { className: 'w-5 h-5 mb-0' })}<span className="ml-2">{item.label}</span>
+                                </button>
+                            );
+                        })}
+                    </nav>
+                    <div className="flex flex-col space-y-4 border-t border-slate-100 pt-6 mt-auto pb-8">
+                        <button onClick={() => {navigate(PAGES.GET_INVOLVED); setIsMobileMenuOpen(false);}} className="flex items-center justify-center space-x-2 px-6 py-4 bg-slate-950 hover:bg-blue-600 text-white text-xs font-black rounded-2xl uppercase tracking-widest shadow-md transition-all"><span>JOIN ACTION</span> <ArrowRight className="w-4 h-4" /></button>
+                    </div>
+                </div>
+            )}
+
             {/* Main Content Area - Padding increased on mobile to account for the double-row header */}
             <main className="flex-1 w-full pt-[120px] lg:pt-20">{renderPage()}</main>
 
-            {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
         </div>
     );
 };

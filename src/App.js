@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Circle as LucideCircle, Globe, Users, ArrowRight, Activity, Search, X, CreditCard, MapPin, Stethoscope, Scale, Briefcase, GraduationCap, HeartPulse, Heart, Plus, CheckCircle2, Info, ChevronRight, RefreshCw, ExternalLink, Home, BookOpen, Microscope, ArrowRightLeft, Megaphone, Upload, Calendar, Clock, Wrench, MessageSquare, Eye, Tag, User, AlignLeft, ChevronLeft, ImageIcon, FileText, Cpu, Settings, Map, Compass, Menu, ClipboardList, FileSearch, Target, Lightbulb, Phone, Mail, Handshake, BookOpenCheck, Award, Book, Library, Building2, PhoneCall, AlertTriangle
 } from 'lucide-react';
@@ -69,6 +69,35 @@ const Notification = ({ message, type, onClose }) => {
       </div>
     </div>
   );
+};
+
+// ----------- ACCESSIBILITY HOOK -----------
+const useFocusTrap = (isActive) => {
+    const ref = useRef(null);
+    useEffect(() => {
+        if (!isActive || !ref.current) return;
+        const el = ref.current;
+        const getFocusable = () => Array.from(
+            el.querySelectorAll('button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')
+        );
+        // Move focus into the modal on open
+        const first = getFocusable()[0];
+        first?.focus();
+        const handleTab = (e) => {
+            if (e.key !== 'Tab') return;
+            const items = getFocusable();
+            const firstEl = items[0];
+            const lastEl = items[items.length - 1];
+            if (e.shiftKey) {
+                if (document.activeElement === firstEl) { e.preventDefault(); lastEl?.focus(); }
+            } else {
+                if (document.activeElement === lastEl) { e.preventDefault(); firstEl?.focus(); }
+            }
+        };
+        el.addEventListener('keydown', handleTab);
+        return () => el.removeEventListener('keydown', handleTab);
+    }, [isActive]);
+    return ref;
 };
 
 // ----------- PAGE COMPONENTS -----------
@@ -821,10 +850,25 @@ const ResourcesPage = ({ setNotif }) => {
     );
 };
 
-const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
+const TherapiesPage = ({ setNotif, dynamicSpecialists, isPremium, setIsPremium, navigate }) => {
     const [selected, setSelected] = useState(null);
     const [isBooking, setIsBooking] = useState(false);
     const [generalBookingCategory, setGeneralBookingCategory] = useState(null); // 'Therapy' or 'Caregiver Support'
+    const [showUnlockModal, setShowUnlockModal] = useState(false);
+    const [unlockEmail, setUnlockEmail] = useState('');
+    const [unlockLoading, setUnlockLoading] = useState(false);
+
+    const serviceModalRef = useFocusTrap(!!selected);
+    const generalModalRef = useFocusTrap(!!generalBookingCategory);
+
+    // Close any open modal — browser back button OR Escape key
+    useEffect(() => {
+        const handler = () => { setSelected(null); setIsBooking(false); setGeneralBookingCategory(null); };
+        const onEscape = (e) => { if (e.key === 'Escape') handler(); };
+        window.addEventListener('closeSubview', handler);
+        window.addEventListener('keydown', onEscape);
+        return () => { window.removeEventListener('closeSubview', handler); window.removeEventListener('keydown', onEscape); };
+    }, []);
 
     const pwdServices = [
         { 
@@ -956,7 +1000,7 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
     const hydrateService = (service) => {
         const communityVols = dynamicSpecialists
             .filter(spec => spec.role === service.targetRole)
-            .map(spec => ({ name: spec.name, role: `${spec.role} (Community Vol.)` }));
+            .map(spec => ({ name: spec.name, role: spec.role, phone: spec.phone, location: spec.location, availability: spec.availability, isCommunity: true }));
         return { ...service, therapists: [...service.baseTherapists, ...communityVols] };
     };
 
@@ -975,7 +1019,7 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-slate-200 pb-4 gap-4">
                         <h3 className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-slate-950">Therapies for Lived Experience</h3>
                         <button 
-                            onClick={() => setGeneralBookingCategory('Therapy')} 
+                            onClick={() => { window.history.pushState({ subview: 'booking' }, '', window.location.href); setGeneralBookingCategory('Therapy'); }}
                             className="flex items-center px-5 py-2.5 border-2 border-slate-950 text-slate-950 hover:bg-slate-950 hover:text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all"
                         >
                             Book Service <ArrowRight className="w-4 h-4 ml-2" />
@@ -986,7 +1030,7 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
                     {pwdServices.map(s => {
                         const hydrated = hydrateService(s);
                         return (
-                        <button key={s.id} onClick={() => setSelected(hydrated)} className="bg-white p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex flex-col items-start border border-slate-100 hover:border-blue-200 text-left outline-none h-full relative overflow-hidden">
+                        <button key={s.id} onClick={() => { window.history.pushState({ subview: 'service' }, '', window.location.href); setSelected(hydrated); }} className="bg-white p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex flex-col items-start border border-slate-100 hover:border-blue-200 text-left outline-none h-full relative overflow-hidden">
                             <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all">{s.icon}</div>
                             <h3 className="text-xl font-black mb-3 uppercase tracking-tight text-slate-950 leading-tight group-hover:text-blue-600 transition-colors">{s.title}</h3>
                             <p className="text-slate-500 font-medium mb-8 leading-relaxed flex-grow text-sm">{s.desc}</p>
@@ -1003,7 +1047,7 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-slate-200 pb-4 gap-4">
                         <h3 className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-slate-950">Caregiver & Caretaker Ecosystem</h3>
                         <button 
-                            onClick={() => setGeneralBookingCategory('Caregiver Support')} 
+                            onClick={() => { window.history.pushState({ subview: 'booking' }, '', window.location.href); setGeneralBookingCategory('Caregiver Support'); }}
                             className="flex items-center px-5 py-2.5 border-2 border-slate-950 text-slate-950 hover:bg-slate-950 hover:text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all"
                         >
                             Book Support <ArrowRight className="w-4 h-4 ml-2" />
@@ -1014,7 +1058,7 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
                     {caregiverServices.map(s => {
                         const hydrated = hydrateService(s);
                         return (
-                        <button key={s.id} onClick={() => setSelected(hydrated)} className="bg-white p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex flex-col items-start border border-slate-100 hover:border-blue-200 text-left outline-none h-full relative overflow-hidden">
+                        <button key={s.id} onClick={() => { window.history.pushState({ subview: 'service' }, '', window.location.href); setSelected(hydrated); }} className="bg-white p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex flex-col items-start border border-slate-100 hover:border-blue-200 text-left outline-none h-full relative overflow-hidden">
                             <div className="w-14 h-14 bg-slate-950 rounded-xl flex items-center justify-center text-white mb-6 group-hover:bg-blue-600 transition-all">{s.icon}</div>
                             <h3 className="text-xl font-black mb-3 uppercase tracking-tight text-slate-950 leading-tight group-hover:text-blue-600 transition-colors">{s.title}</h3>
                             <p className="text-slate-500 font-medium mb-8 leading-relaxed flex-grow text-sm">{s.desc}</p>
@@ -1034,13 +1078,17 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
                     onClick={() => { setSelected(null); setIsBooking(false); }} // Click outside to close
                 >
                     <div 
+                        ref={serviceModalRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="therapy-service-modal-title"
                         className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
-                        onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        <button onClick={() => {setSelected(null); setIsBooking(false);}} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all"><X className="w-5 h-5"/></button>
-                        
+                        <button onClick={() => {setSelected(null); setIsBooking(false);}} aria-label="Close service details" className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all"><X className="w-5 h-5"/></button>
+
                         <span className="inline-block px-3 py-1 bg-slate-100 text-slate-600 font-black text-[9px] uppercase tracking-widest rounded-md mb-4 mt-2">{selected.category}</span>
-                        <h3 className="text-3xl lg:text-4xl font-black mb-6 uppercase tracking-tighter text-slate-950 leading-tight">{selected.title}</h3>
+                        <h3 id="therapy-service-modal-title" className="text-3xl lg:text-4xl font-black mb-6 uppercase tracking-tighter text-slate-950 leading-tight">{selected.title}</h3>
                         
                         {!isBooking ? (
                             <>
@@ -1076,31 +1124,60 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
                                     </h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {selected.therapists.map((t, i) => (
-                                            <div key={i} className="flex items-center p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                                <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center mr-3 text-slate-500 flex-shrink-0"><User className="w-5 h-5" /></div>
-                                                <div>
+                                            <div key={i} className={`flex items-start p-4 rounded-xl border ${t.isCommunity ? 'bg-blue-50 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 flex-shrink-0 ${t.isCommunity ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-500'}`}><User className="w-5 h-5" /></div>
+                                                <div className="min-w-0">
                                                     <p className="font-black text-sm text-slate-950 leading-tight">{t.name}</p>
-                                                    <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest mt-1">{t.role}</p>
+                                                    <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest mt-1">{t.role}{t.isCommunity && ' · Community'}</p>
+                                                    {t.location && <p className="text-[9px] text-slate-500 mt-1 flex items-center gap-1"><MapPin className="w-2.5 h-2.5 inline flex-shrink-0" />{t.location}</p>}
+                                                    {t.phone && (
+                                                        isPremium
+                                                            ? <p className="text-[9px] text-slate-500 mt-0.5 flex items-center gap-1"><Phone className="w-2.5 h-2.5 inline flex-shrink-0" />{t.phone}</p>
+                                                            : <p className="text-[9px] text-slate-400 mt-0.5 flex items-center gap-1 select-none"><Phone className="w-2.5 h-2.5 inline flex-shrink-0" /><span className="blur-sm">••• •••• ••••</span><span className="ml-1 text-amber-500 text-[8px]">🔒</span></p>
+                                                    )}
+                                                    {t.availability && <span className="inline-block mt-1 px-1.5 py-0.5 bg-green-50 border border-green-100 text-green-700 text-[8px] font-black uppercase tracking-wider rounded">{t.availability}</span>}
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
+                                    {!isPremium && selected.therapists.some(t => t.phone) && (
+                                        <button onClick={() => setShowUnlockModal(true)} className="mt-4 w-full py-3 border-2 border-amber-300 text-amber-700 bg-amber-50 font-black rounded-xl text-[10px] uppercase tracking-widest hover:bg-amber-100 transition-all flex items-center justify-center gap-2">
+                                            🔒 Unlock Specialist Contacts — Verified Members Only
+                                        </button>
+                                    )}
                                 </div>
                                 <button onClick={() => setIsBooking(true)} className="w-full py-5 bg-blue-600 text-white font-black rounded-full shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-blue-700 transition-all">PROCEED TO BOOKING</button>
                             </>
                         ) : (
-                            <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); setNotif({msg: "Booking confirmed. A specialist will reach out shortly.", type: "success"}); setSelected(null); setIsBooking(false); }}>
+                            <form className="space-y-5" onSubmit={async (e) => {
+                                e.preventDefault();
+                                const fd = new FormData(e.target);
+                                try {
+                                    await supabase.from('bookings').insert([{
+                                        type: 'therapy',
+                                        service: selected.title,
+                                        category: selected.category,
+                                        specialist_role: selected.targetRole,
+                                        patient_name: fd.get('patientName'),
+                                        contact: fd.get('contact'),
+                                        preferred_date: fd.get('preferredDate'),
+                                        status: 'pending',
+                                    }]);
+                                } catch (err) { console.warn('Booking save failed:', err.message); }
+                                setNotif({ msg: "Booking submitted! Available specialists will be notified and will confirm on a first-come-first-serve basis.", type: "success" });
+                                setSelected(null); setIsBooking(false);
+                            }}>
                                 <div>
                                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Patient / Caretaker Name</label>
-                                    <input placeholder="Full Legal Name" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                    <input name="patientName" placeholder="Full Legal Name" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Contact Information</label>
-                                    <input placeholder="Email or Phone Number" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                    <input name="contact" placeholder="Email or Phone Number" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Preferred Schedule</label>
-                                    <input type="date" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                    <input name="preferredDate" type="date" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
                                 </div>
                                 <div className="flex gap-4 pt-4">
                                     <button type="button" onClick={() => setIsBooking(false)} className="px-6 py-5 bg-slate-100 text-slate-500 font-black rounded-full uppercase tracking-[0.2em] text-xs hover:bg-slate-200">BACK</button>
@@ -1119,31 +1196,54 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
                     onClick={() => setGeneralBookingCategory(null)}
                 >
                     <div 
-                        className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
+                        ref={generalModalRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="therapy-general-modal-title"
+                        className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 max-h-[90vh] overflow-y-auto custom-scrollbar"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <button onClick={() => setGeneralBookingCategory(null)} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all z-10"><X className="w-5 h-5"/></button>
-                        
+                        <button onClick={() => setGeneralBookingCategory(null)} aria-label="Close booking form" className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all z-10"><X className="w-5 h-5"/></button>
+
                         <div className="flex items-center space-x-3 mb-6 pt-4">
                             <div className="w-12 h-12 bg-slate-950 text-white rounded-xl flex items-center justify-center shadow-lg"><Activity className="w-6 h-6" /></div>
                             <div>
-                                <h3 className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-slate-950 leading-none">Book {generalBookingCategory}</h3>
+                                <h3 id="therapy-general-modal-title" className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-slate-950 leading-none">Book {generalBookingCategory}</h3>
                                 <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">General Admission</p>
                             </div>
                         </div>
 
-                        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); setNotif({msg: "Booking request received. Our coordinator will contact you to assign a specialist.", type: "success"}); setGeneralBookingCategory(null); }}>
+                        <form className="space-y-5" onSubmit={async (e) => {
+                            e.preventDefault();
+                            const fd = new FormData(e.target);
+                            const allSvcs = [...pwdServices, ...caregiverServices];
+                            const matchedSvc = allSvcs.find(s => s.title.trim() === fd.get('service'));
+                            try {
+                                await supabase.from('bookings').insert([{
+                                    type: generalBookingCategory === 'Therapy' ? 'therapy' : 'caregiver',
+                                    category: generalBookingCategory,
+                                    specialist_role: matchedSvc?.targetRole || null,
+                                    patient_name: fd.get('patientName'),
+                                    contact: fd.get('contact'),
+                                    service: fd.get('service'),
+                                    preferred_date: fd.get('preferredDate'),
+                                    status: 'pending',
+                                }]);
+                            } catch (err) { console.warn('Booking save failed:', err.message); }
+                            setNotif({ msg: "Booking submitted! Available specialists will be notified and confirm on a first-come-first-serve basis.", type: "success" });
+                            setGeneralBookingCategory(null);
+                        }}>
                             <div>
                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Patient / Caretaker Name</label>
-                                <input placeholder="Full Legal Name" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                <input name="patientName" placeholder="Full Legal Name" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
                             </div>
                             <div>
                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Contact Information</label>
-                                <input placeholder="Email or Phone Number" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                <input name="contact" placeholder="Email or Phone Number" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
                             </div>
                             <div>
                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Specific Service Needed</label>
-                                <select required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
+                                <select name="service" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
                                     <option value="">Select a specific area...</option>
                                     {generalBookingCategory === 'Therapy' ? (
                                         pwdServices.map(s => <option key={s.id} value={s.title}>{s.title}</option>)
@@ -1153,11 +1253,63 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists }) => {
                                     <option value="Not Sure">Not Sure / Needs Assessment</option>
                                 </select>
                             </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 flex items-center"><Calendar className="w-3 h-3 mr-1"/> Preferred Date</label>
+                                <input name="preferredDate" type="date" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                            </div>
                             <div className="flex gap-4 pt-4 border-t border-slate-100 mt-6">
                                 <button type="button" onClick={() => setGeneralBookingCategory(null)} className="px-6 py-5 bg-slate-100 text-slate-500 font-black rounded-full uppercase tracking-[0.2em] text-xs hover:bg-slate-200">CANCEL</button>
-                                <button type="submit" className="flex-1 py-5 bg-slate-950 text-white font-black rounded-full shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-slate-800">CONFIRM BOOKING</button>
+                                <button type="submit" className="flex-1 py-5 bg-slate-950 text-white font-black rounded-full shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-slate-800">SUBMIT BOOKING</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* UNLOCK CONTACTS MODAL */}
+            {showUnlockModal && (
+                <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setShowUnlockModal(false)}>
+                    <div className="bg-white w-full max-w-md rounded-[2rem] p-8 shadow-2xl relative animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setShowUnlockModal(false)} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-all"><X className="w-4 h-4"/></button>
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 bg-amber-50 border-2 border-amber-200 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">🔒</div>
+                            <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-950">Member Access</h3>
+                            <p className="text-slate-500 text-sm mt-2 leading-relaxed">Specialist contact details are available to registered Tenda Care community members.</p>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Your Registered Email</label>
+                                <input
+                                    type="email"
+                                    value={unlockEmail}
+                                    onChange={e => setUnlockEmail(e.target.value)}
+                                    placeholder="your@email.com"
+                                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none"
+                                />
+                            </div>
+                            <button
+                                disabled={unlockLoading || !unlockEmail}
+                                onClick={async () => {
+                                    setUnlockLoading(true);
+                                    try {
+                                        const { data } = await supabase.from('profiles').select('full_name').eq('email', unlockEmail).single();
+                                        if (data) {
+                                            setIsPremium(true);
+                                            setShowUnlockModal(false);
+                                            setUnlockEmail('');
+                                            setNotif({ msg: `Welcome, ${data.full_name}! Specialist contacts are now unlocked.`, type: 'success' });
+                                        } else {
+                                            setNotif({ msg: "Email not found. Please register on the Get Involved page first.", type: 'error' });
+                                        }
+                                    } catch { setNotif({ msg: "Email not found in our community registry.", type: 'error' }); }
+                                    finally { setUnlockLoading(false); }
+                                }}
+                                className="w-full py-4 bg-slate-950 text-white font-black rounded-full uppercase tracking-[0.2em] text-xs hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {unlockLoading ? 'VERIFYING...' : 'VERIFY & UNLOCK'}
+                            </button>
+                            <p className="text-center text-xs text-slate-400">Not a member yet? Register on the <strong className="text-blue-600">Get Involved</strong> page to join.</p>
+                        </div>
                     </div>
                 </div>
             )}
@@ -1177,7 +1329,23 @@ const ResearchPage = ({ setNotif }) => {
     
     // Modal state for viewing a specific research service detail
     const [selectedResearchService, setSelectedResearchService] = useState(null);
-    
+
+    const researchServiceModalRef = useFocusTrap(!!selectedResearchService);
+    const repairModalRef = useFocusTrap(showRepairBooking);
+    const researchBookingModalRef = useFocusTrap(showResearchBooking);
+
+    // Escape key closes any open modal
+    useEffect(() => {
+        const onEscape = (e) => {
+            if (e.key !== 'Escape') return;
+            setSelectedResearchService(null);
+            setShowRepairBooking(false);
+            setShowResearchBooking(false);
+        };
+        window.addEventListener('keydown', onEscape);
+        return () => window.removeEventListener('keydown', onEscape);
+    }, []);
+
     const REPAIR_CENTERS = [
         { name: "Tenda Care Base Lab", location: "Nairobi Central", focus: "Full-scale hardware & PCB assessment, custom wheelchair modifications.", icon: <Settings className="w-5 h-5"/>, isBase: true },
         { name: "Kenyatta National Hospital Rehab", location: "Upper Hill, Nairobi", focus: "Orthopedic assessments and mechanical mobility device repairs.", icon: <Wrench className="w-5 h-5"/>, isBase: false },
@@ -1419,17 +1587,21 @@ const ResearchPage = ({ setNotif }) => {
                     className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300"
                     onClick={() => setSelectedResearchService(null)}
                 >
-                    <div 
+                    <div
+                        ref={researchServiceModalRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="research-service-modal-title"
                         className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <button onClick={() => setSelectedResearchService(null)} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all z-10"><X className="w-5 h-5"/></button>
-                        
+                        <button onClick={() => setSelectedResearchService(null)} aria-label="Close service details" className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all z-10"><X className="w-5 h-5"/></button>
+
                         <div className="mb-8 border-b border-slate-100 pb-6 pt-4">
                             <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1.5 rounded-md inline-flex items-center mb-4">
                                 Research Service
                             </span>
-                            <h3 className="text-3xl lg:text-4xl font-black uppercase tracking-tighter text-slate-950 leading-tight mb-4">{selectedResearchService.title}</h3>
+                            <h3 id="research-service-modal-title" className="text-3xl lg:text-4xl font-black uppercase tracking-tighter text-slate-950 leading-tight mb-4">{selectedResearchService.title}</h3>
                         </div>
 
                         <div className="space-y-8 mb-10">
@@ -1465,29 +1637,42 @@ const ResearchPage = ({ setNotif }) => {
                     className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300"
                     onClick={() => { setShowRepairBooking(false); setRepairImages([]); }}
                 >
-                    <div 
+                    <div
+                        ref={repairModalRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="repair-modal-title"
                         className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <button onClick={() => { setShowRepairBooking(false); setRepairImages([]); }} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all z-10"><X className="w-5 h-5"/></button>
-                        
+                        <button onClick={() => { setShowRepairBooking(false); setRepairImages([]); }} aria-label="Close repair booking" className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all z-10"><X className="w-5 h-5"/></button>
+
                         <div className="flex items-center space-x-3 mb-6 pt-4">
                             <div className="w-12 h-12 bg-slate-950 text-white rounded-xl flex items-center justify-center shadow-lg"><Wrench className="w-6 h-6" /></div>
                             <div>
-                                <h3 className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-slate-950 leading-none">Book Lab Repair</h3>
+                                <h3 id="repair-modal-title" className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-slate-950 leading-none">Book Lab Repair</h3>
                                 <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">Tenda Care Base Lab • Nairobi Central</p>
                             </div>
                         </div>
 
-                        <form className="space-y-5" onSubmit={(e) => { 
-                            e.preventDefault(); 
-                            setNotif({msg: "Repair booking confirmed. Bring your equipment to the Base Lab at the scheduled time.", type: "success"}); 
-                            setShowRepairBooking(false); 
+                        <form className="space-y-5" onSubmit={async (e) => {
+                            e.preventDefault();
+                            const fd = new FormData(e.target);
+                            try {
+                                await supabase.from('bookings').insert([{
+                                    type: 'repair',
+                                    service: fd.get('equipmentType'),
+                                    notes: fd.get('defect'),
+                                    preferred_date: fd.get('dropoffDate'),
+                                }]);
+                            } catch (err) { console.warn('Booking save failed:', err.message); }
+                            setNotif({ msg: "Repair booking confirmed. Bring your equipment to the Base Lab at the scheduled time.", type: "success" });
+                            setShowRepairBooking(false);
                             setRepairImages([]);
                         }}>
                             <div>
                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Equipment Type</label>
-                                <select required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
+                                <select name="equipmentType" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
                                     <option value="">Select Equipment...</option>
                                     <option value="wheelchair">Manual/Electric Wheelchair</option>
                                     <option value="pcb">Custom PCB / Tracking Hardware</option>
@@ -1526,16 +1711,16 @@ const ResearchPage = ({ setNotif }) => {
 
                             <div>
                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Describe the Defect / Issue</label>
-                                <textarea placeholder="What exactly needs repair or assessment? (e.g., motor replacement, firmware flash, wheel alignment)" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none font-medium h-24 focus:border-blue-500 transition-colors"></textarea>
+                                <textarea name="defect" placeholder="What exactly needs repair or assessment? (e.g., motor replacement, firmware flash, wheel alignment)" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none font-medium h-24 focus:border-blue-500 transition-colors"></textarea>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 flex items-center"><Calendar className="w-3 h-3 mr-1"/> Drop-off Date</label>
-                                    <input type="date" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                    <input name="dropoffDate" type="date" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 flex items-center"><Clock className="w-3 h-3 mr-1"/> Preferred Time</label>
-                                    <input type="time" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                    <input name="preferredTime" type="time" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
                                 </div>
                             </div>
                             
@@ -1554,33 +1739,46 @@ const ResearchPage = ({ setNotif }) => {
                     className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300 text-left"
                     onClick={() => { setShowResearchBooking(false); setResearchDocs([]); }}
                 >
-                    <div 
+                    <div
+                        ref={researchBookingModalRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="research-booking-modal-title"
                         className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <button onClick={() => { setShowResearchBooking(false); setResearchDocs([]); }} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-600 transition-all z-10"><X className="w-5 h-5"/></button>
-                        
+                        <button onClick={() => { setShowResearchBooking(false); setResearchDocs([]); }} aria-label="Close research booking" className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-600 transition-all z-10"><X className="w-5 h-5"/></button>
+
                         <div className="flex items-center space-x-3 mb-6 pt-4">
                             <div className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg"><FileSearch className="w-6 h-6" /></div>
                             <div>
-                                <h3 className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-slate-950 leading-none">Request Research Support</h3>
+                                <h3 id="research-booking-modal-title" className="text-2xl lg:text-3xl font-black uppercase tracking-tighter text-slate-950 leading-none">Request Research Support</h3>
                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Field Logistics & Academic Consulting</p>
                             </div>
                         </div>
 
-                        <form className="space-y-5" onSubmit={(e) => { 
-                            e.preventDefault(); 
-                            setNotif({msg: "Request submitted. Our research coordinator will contact you shortly.", type: "success"}); 
-                            setShowResearchBooking(false); 
+                        <form className="space-y-5" onSubmit={async (e) => {
+                            e.preventDefault();
+                            const fd = new FormData(e.target);
+                            try {
+                                await supabase.from('bookings').insert([{
+                                    type: 'research',
+                                    patient_name: fd.get('piContact'),
+                                    service: fd.get('serviceType'),
+                                    notes: fd.get('overview'),
+                                }]);
+                            } catch (err) { console.warn('Booking save failed:', err.message); }
+                            setNotif({ msg: "Request submitted. Our research coordinator will contact you shortly.", type: "success" });
+                            setShowResearchBooking(false);
                             setResearchDocs([]);
                         }}>
                             <div>
                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Primary Contact / PI</label>
-                                <input placeholder="Full Name & Institution" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                <input name="piContact" placeholder="Full Name & Institution" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
                             </div>
                             <div>
                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Service Requested</label>
-                                <select required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
+                                <select name="serviceType" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
                                     <option value="">Select Primary Need...</option>
                                     <option value="data_collection">Field Enumerators & Data Collection</option>
                                     <option value="analysis">Statistical Analysis & Data Management</option>
@@ -1631,7 +1829,7 @@ const ResearchPage = ({ setNotif }) => {
 
                             <div>
                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Project Overview</label>
-                                <textarea placeholder="Briefly describe your research goals, target demographic, and timeline..." required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none font-medium h-28 focus:border-blue-500 transition-colors"></textarea>
+                                <textarea name="overview" placeholder="Briefly describe your research goals, target demographic, and timeline..." required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none font-medium h-28 focus:border-blue-500 transition-colors"></textarea>
                             </div>
                             
                             <div className="flex gap-4 pt-4 border-t border-slate-100 mt-6">
@@ -1683,13 +1881,33 @@ const ExchangePage = ({ setNotif }) => {
     const nextSlide = () => setCurrentSlideIndex(prev => (selectedItem?.image_urls && prev === selectedItem.image_urls.length - 1) ? 0 : prev + 1);
     const prevSlide = () => setCurrentSlideIndex(prev => (selectedItem?.image_urls && prev === 0) ? selectedItem.image_urls.length - 1 : prev - 1);
 
+    const itemModalRef = useFocusTrap(!!selectedItem);
+
+    // Track view in a ref so the closeSubview handler can read the current value
+    const exchangeViewRef = useRef('list');
+    useEffect(() => { exchangeViewRef.current = view; }, [view]);
+
+    // Browser back or Escape: close item modal or step back through donate flow
+    useEffect(() => {
+        const handler = () => {
+            const v = exchangeViewRef.current;
+            if (v === 'donate_step2') setView('donate_step1');
+            else if (v === 'donate_step1') setView('list');
+            else setSelectedItem(null);
+        };
+        const onEscape = (e) => { if (e.key === 'Escape') handler(); };
+        window.addEventListener('closeSubview', handler);
+        window.addEventListener('keydown', onEscape);
+        return () => { window.removeEventListener('closeSubview', handler); window.removeEventListener('keydown', onEscape); };
+    }, []);
+
     if (view === 'donate_step1') return (
         <div className="py-24 max-w-4xl mx-auto px-6 animate-in fade-in">
             <p className="text-blue-600 font-black tracking-widest uppercase mb-6 text-xs text-center">Step 01 / Category Selection</p>
             <h2 className="text-4xl lg:text-5xl font-black text-slate-950 mb-12 uppercase tracking-tighter leading-none text-center">CHOOSE DEVICE TYPE</h2>
             <div className="grid md:grid-cols-2 gap-4">
                 {DEVICE_TYPES.map((t, i) => (
-                <button key={i} onClick={() => { setSelectedType(t); setView('donate_step2'); setImageFiles([]); }} className="p-6 bg-white border border-slate-200 rounded-2xl text-left hover:border-blue-600 hover:shadow-lg transition-all group flex items-center justify-between">
+                <button key={i} onClick={() => { window.history.pushState({ subview: 'donate_step2' }, '', window.location.href); setSelectedType(t); setView('donate_step2'); setImageFiles([]); }} className="p-6 bg-white border border-slate-200 rounded-2xl text-left hover:border-blue-600 hover:shadow-lg transition-all group flex items-center justify-between">
                     <div>
                         <span className="font-black text-slate-950 group-hover:text-blue-600 text-lg uppercase tracking-tight block">{t.split('(')[0]}</span>
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mt-1 block">{t.split('(')[1]?.replace(')', '') || 'Misc'}</span>
@@ -1836,8 +2054,8 @@ const ExchangePage = ({ setNotif }) => {
                 </div>
                 
                 <div className="grid md:grid-cols-2 gap-6 mb-24">
-                    <button onClick={() => setView('donate_step1')} className="bg-white p-10 rounded-[2rem] shadow-sm flex flex-col items-center text-center group border border-slate-100 hover:border-blue-100 hover:-translate-y-1 transition-all outline-none w-full">
-                        <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm"><Heart className="w-8 h-8" /></div>
+                    <button onClick={() => { window.history.pushState({ subview: 'donate' }, '', window.location.href); setView('donate_step1'); }} className="bg-white p-10 rounded-[2rem] shadow-sm flex flex-col items-center text-center group border border-slate-100 hover:border-blue-100 hover:-translate-y-1 transition-all outline-none w-full">
+                        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6 group-hover:bg-red-500 transition-all shadow-sm"><Heart className="w-8 h-8 text-red-400 group-hover:text-white group-hover:fill-white transition-all" /></div>
                         <h3 className="text-3xl font-black text-slate-950 mb-4 uppercase tracking-tight leading-none">Donate Asset</h3>
                         <p className="text-slate-500 font-medium mb-8 max-w-xs leading-relaxed text-sm">Gift your pre-loved assistive tools to a community member in need.</p>
                     </button>
@@ -1870,8 +2088,8 @@ const ExchangePage = ({ setNotif }) => {
                                         </div>
                                         <div><p className="font-black text-sm sm:text-lg tracking-tight uppercase text-slate-950 mb-1 truncate">{d.name}</p><p className="text-[9px] font-black uppercase text-blue-600 tracking-widest truncate">{d.device_type}</p></div>
                                     </div>
-                                    <button onClick={() => { setSelectedItem(d); setCurrentSlideIndex(0); }} className="px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-950 text-white font-black text-[9px] sm:text-[10px] rounded-full hover:bg-blue-600 uppercase tracking-[0.2em] flex items-center">
-                                        <Eye className="w-3 h-3 sm:mr-2" /> <span className="hidden sm:inline">VIEW ITEM</span>
+                                    <button aria-label={`View details for ${d.name}`} onClick={() => { window.history.pushState({ subview: 'item' }, '', window.location.href); setSelectedItem(d); setCurrentSlideIndex(0); }} className="px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-950 text-white font-black text-[9px] sm:text-[10px] rounded-full hover:bg-blue-600 uppercase tracking-[0.2em] flex items-center">
+                                        <Eye className="w-3 h-3 sm:mr-2" aria-hidden="true" /> <span className="hidden sm:inline">VIEW ITEM</span>
                                     </button>
                                 </div>
                             ))
@@ -1887,17 +2105,21 @@ const ExchangePage = ({ setNotif }) => {
                     className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-300"
                     onClick={() => setSelectedItem(null)}
                 >
-                    <div 
+                    <div
+                        ref={itemModalRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="exchange-item-modal-title"
                         className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <button onClick={() => setSelectedItem(null)} className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all z-10"><X className="w-5 h-5"/></button>
-                        
+                        <button onClick={() => setSelectedItem(null)} aria-label="Close item details" className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all z-10"><X className="w-5 h-5"/></button>
+
                         <div className="mb-6 border-b border-slate-100 pb-6">
                             <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1.5 rounded-md inline-flex items-center mb-4">
                                 <Tag className="w-3 h-3 mr-1.5" /> {selectedItem.device_type}
                             </span>
-                            <h3 className="text-3xl lg:text-4xl font-black uppercase tracking-tighter text-slate-950 leading-tight mb-3">{selectedItem.name}</h3>
+                            <h3 id="exchange-item-modal-title" className="text-3xl lg:text-4xl font-black uppercase tracking-tighter text-slate-950 leading-tight mb-3">{selectedItem.name}</h3>
                             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center">
                                     <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span> Condition: <span className="text-slate-700 ml-1">{selectedItem.condition}</span>
@@ -1948,12 +2170,183 @@ const ExchangePage = ({ setNotif }) => {
     );
 };
 
+const SpecialistInbox = ({ setNotif }) => {
+    const [email, setEmail] = useState('');
+    const [profile, setProfile] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [bookings, setBookings] = useState([]);
+
+    useEffect(() => {
+        if (!profile) return;
+        const loadBookings = async () => {
+            const { data } = await supabase
+                .from('bookings')
+                .select('id, created_at, service, patient_name, contact, preferred_date, status, specialist_name')
+                .eq('specialist_role', profile.role)
+                .order('created_at', { ascending: false });
+            setBookings(data || []);
+        };
+        loadBookings();
+        const channel = supabase
+            .channel('specialist-inbox-' + profile.email)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings' }, loadBookings)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bookings' }, loadBookings)
+            .subscribe();
+        return () => supabase.removeChannel(channel);
+    }, [profile]);
+
+    const verify = async () => {
+        if (!email) return;
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('full_name, role, email')
+                .eq('email', email)
+                .single();
+            if (error || !data) {
+                setNotif({ msg: "Email not found in our specialist registry. Please register on this page first.", type: 'error' });
+            } else {
+                setProfile(data);
+            }
+        } finally { setLoading(false); }
+    };
+
+    const claimBooking = async (booking) => {
+        if (!profile) return;
+        try {
+            const { data, error } = await supabase
+                .from('bookings')
+                .update({ status: 'confirmed', specialist_name: profile.full_name, specialist_email: profile.email })
+                .eq('id', booking.id)
+                .eq('status', 'pending')
+                .select();
+            if (error || !data || data.length === 0) {
+                setNotif({ msg: "This slot was just claimed by another specialist.", type: 'error' });
+            } else {
+                setNotif({ msg: "Confirmed! Patient contact is now visible below.", type: 'success' });
+                setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, status: 'confirmed', specialist_name: profile.full_name } : b));
+            }
+        } catch (err) { setNotif({ msg: err.message, type: 'error' }); }
+    };
+
+    const pendingBookings = bookings.filter(b => b.status === 'pending');
+    const myConfirmed = bookings.filter(b => b.status === 'confirmed' && b.specialist_name === profile?.full_name);
+
+    if (!profile) {
+        return (
+            <div className="bg-white border border-slate-200 rounded-[2rem] p-8 max-w-lg">
+                <div className="flex items-center mb-6">
+                    <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mr-4 flex-shrink-0"><Mail className="w-5 h-5" /></div>
+                    <div>
+                        <h4 className="font-black text-slate-950 uppercase tracking-tight text-sm">Verify Identity</h4>
+                        <p className="text-xs text-slate-500 mt-0.5">Enter your specialist email to access your inbox</p>
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <input
+                        type="email"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') verify(); }}
+                        placeholder="your@email.com"
+                        className="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none text-sm"
+                    />
+                    <button onClick={verify} disabled={loading || !email} className="px-6 py-4 bg-slate-950 text-white font-black rounded-xl text-xs uppercase tracking-widest hover:bg-blue-600 transition-all disabled:opacity-50">
+                        {loading ? '...' : 'ACCESS'}
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-8 p-6 bg-white border border-slate-200 rounded-2xl">
+                <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-1">Specialist Portal</p>
+                    <h4 className="text-lg font-black text-slate-950 uppercase tracking-tight leading-none">{profile.full_name}</h4>
+                    <p className="text-xs text-slate-500 mt-1">{profile.role}</p>
+                </div>
+                <button onClick={() => { setProfile(null); setEmail(''); setBookings([]); }} className="text-xs text-slate-400 hover:text-red-500 font-bold uppercase tracking-widest transition-colors">Sign Out</button>
+            </div>
+
+            <div className="mb-10">
+                <h4 className="text-xs font-black uppercase tracking-widest text-slate-700 mb-4 flex items-center">
+                    <Activity className="w-4 h-4 mr-2 text-blue-600" />
+                    Pending Requests ({pendingBookings.length})
+                </h4>
+                {pendingBookings.length === 0 ? (
+                    <div className="text-center p-10 bg-white border border-dashed border-slate-200 rounded-2xl">
+                        <ClipboardList className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium text-sm">No pending requests for your specialty right now.</p>
+                        <p className="text-xs text-slate-400 mt-1">New bookings appear here in real time.</p>
+                    </div>
+                ) : (
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {pendingBookings.map(b => (
+                            <div key={b.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <p className="font-black text-slate-950 text-sm">{b.patient_name}</p>
+                                        <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest mt-1">{b.service}</p>
+                                    </div>
+                                    <span className="px-2 py-1 bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-wider rounded-full border border-amber-200 flex-shrink-0 ml-2">Pending</span>
+                                </div>
+                                {b.preferred_date && <p className="text-[10px] text-slate-500 mb-3 flex items-center"><Calendar className="w-3 h-3 mr-1 flex-shrink-0" />{b.preferred_date}</p>}
+                                <p className="text-[10px] text-slate-400 mb-4">Contact: <span className="blur-sm select-none">••••••••••••</span></p>
+                                <button onClick={() => claimBooking(b)} className="w-full py-3 bg-blue-600 text-white font-black rounded-xl text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+                                    <CheckCircle2 className="w-3.5 h-3.5" /> Claim & Confirm
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {myConfirmed.length > 0 && (
+                <div>
+                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-700 mb-4 flex items-center">
+                        <CheckCircle2 className="w-4 h-4 mr-2 text-green-600" />
+                        Your Confirmed Bookings ({myConfirmed.length})
+                    </h4>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {myConfirmed.map(b => (
+                            <div key={b.id} className="bg-green-50 border border-green-200 rounded-2xl p-6">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <p className="font-black text-slate-950 text-sm">{b.patient_name}</p>
+                                        <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest mt-1">{b.service}</p>
+                                    </div>
+                                    <span className="px-2 py-1 bg-green-100 text-green-700 text-[9px] font-black uppercase tracking-wider rounded-full border border-green-300 flex-shrink-0 ml-2">Confirmed</span>
+                                </div>
+                                {b.preferred_date && <p className="text-[10px] text-slate-500 mb-3 flex items-center"><Calendar className="w-3 h-3 mr-1 flex-shrink-0" />{b.preferred_date}</p>}
+                                <div className="p-3 bg-white border border-green-200 rounded-xl">
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-green-700 mb-1">Patient Contact</p>
+                                    <p className="text-sm font-bold text-slate-950">{b.contact}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const GetInvolvedPage = ({ setNotif, onAddSpecialist, dynamicSpecialists }) => {
     const [view, setView] = useState('choice');
     const [role, setRole] = useState("");
     const [consentToDisplay, setConsentToDisplay] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+
+    // Browser back while on signup form → return to role-choice screen
+    useEffect(() => {
+        const handler = () => setView('choice');
+        window.addEventListener('closeSubview', handler);
+        return () => window.removeEventListener('closeSubview', handler);
+    }, []);
+
     // UPDATED: Comprehensive list of roles based on Therapies and Support ecosystems
     const roles = [
         { title: "Physical Therapist", sub: "Movement & posture care.", color: "bg-blue-600" },
@@ -1967,7 +2360,8 @@ const GetInvolvedPage = ({ setNotif, onAddSpecialist, dynamicSpecialists }) => {
         { title: "Clinical Psychologist", sub: "Mental health guidance.", color: "bg-blue-950" },
         { title: "Caregiver / Caretaker", sub: "Family & daily support.", color: "bg-blue-500" },
         { title: "Respite Coordinator", sub: "Temporary care relief.", color: "bg-blue-400" },
-        { title: "Inclusion Consultant", sub: "Corporate audits.", color: "bg-slate-600" }
+        { title: "Inclusion Consultant", sub: "Corporate audits.", color: "bg-slate-600" },
+        { title: "Social Worker", sub: "Social support navigation.", color: "bg-slate-500" }
     ];
 
     if (view === 'signup') return (
@@ -1982,23 +2376,25 @@ const GetInvolvedPage = ({ setNotif, onAddSpecialist, dynamicSpecialists }) => {
                     e.preventDefault(); 
                     setIsSubmitting(true);
                     
-                    const name = e.target.elements.fullName.value; 
-                    const email = e.target.elements.email.value;
-                    const mission = e.target.elements.mission.value;
+                    const fd = new FormData(e.target);
+                    const name = fd.get('fullName');
+                    const email = fd.get('email');
+                    const phone = fd.get('phone');
+                    const location = fd.get('location');
+                    const experienceYears = fd.get('experienceYears');
+                    const availability = fd.get('availability');
+                    const mission = fd.get('mission');
 
                     try {
-                        const { error: dbError } = await supabase.from('profiles').insert([{
-                            email: email, full_name: name, role: role, mission_statement: mission, public_consent: consentToDisplay
-                        }]);
+                        const { error: dbError } = await supabase.from('profiles').upsert([{
+                            email, full_name: name, role, phone, location,
+                            experience_years: experienceYears, availability,
+                            mission_statement: mission, public_consent: consentToDisplay
+                        }], { onConflict: 'email' });
 
-                        if (dbError) {
-                            if(dbError.code === '23505' || dbError.message.includes('duplicate')) {
-                                throw new Error("This email is already registered in our system.");
-                            }
-                            throw dbError;
-                        }
+                        if (dbError) throw dbError;
 
-                        if(consentToDisplay) onAddSpecialist({ name, role }); 
+                        if(consentToDisplay) onAddSpecialist({ name, role, phone, location, availability });
                         setNotif({msg: "Your profile has been submitted and added to our public directory!", type: "success"}); 
                         setView('choice');
 
@@ -2015,10 +2411,40 @@ const GetInvolvedPage = ({ setNotif, onAddSpecialist, dynamicSpecialists }) => {
                         <input name="email" type="email" placeholder="Professional Email" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
                     </div>
                     <div>
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Mission Statement</label>
-                        <textarea name="mission" placeholder="Briefly describe your focus..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none font-medium h-32 focus:border-blue-500" required></textarea>
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Phone / WhatsApp</label>
+                        <input name="phone" type="tel" placeholder="+254 7XX XXX XXX" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
                     </div>
-                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">County / Location</label>
+                            <input name="location" placeholder="e.g. Nairobi, Mombasa" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Years of Experience</label>
+                            <select name="experienceYears" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
+                                <option value="">Select...</option>
+                                <option value="0-1">Less than 1 year</option>
+                                <option value="1-3">1 – 3 years</option>
+                                <option value="3-5">3 – 5 years</option>
+                                <option value="5-10">5 – 10 years</option>
+                                <option value="10+">10+ years</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Availability</label>
+                        <select name="availability" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
+                            <option value="">Select...</option>
+                            <option value="Volunteer">Volunteer (no charge)</option>
+                            <option value="Paid">Paid services only</option>
+                            <option value="Both">Both volunteer & paid</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Mission Statement</label>
+                        <textarea name="mission" placeholder="Briefly describe your focus and how you can help..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none font-medium h-28 focus:border-blue-500" required></textarea>
+                    </div>
+
                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-start space-x-3 cursor-pointer" onClick={() => setConsentToDisplay(!consentToDisplay)}>
                         <div className={`w-5 h-5 rounded flex items-center justify-center border mt-0.5 flex-shrink-0 transition-colors ${consentToDisplay ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-300'}`}>{consentToDisplay && <CheckCircle2 className="w-4 h-4" />}</div>
                         <div><p className="font-bold text-sm text-slate-950 leading-tight">Public Directory Consent</p><p className="text-xs text-slate-500 mt-1">I consent to having my name listed publicly.</p></div>
@@ -2047,7 +2473,7 @@ const GetInvolvedPage = ({ setNotif, onAddSpecialist, dynamicSpecialists }) => {
             <div className="max-w-7xl mx-auto px-6 relative z-10 w-full mb-32 -mt-20">
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {roles.map((r, i) => (
-                    <button key={i} onClick={() => { setRole(r.title); setView('signup'); setConsentToDisplay(false); }} className={`${r.color} p-8 lg:p-10 rounded-[2rem] text-left group hover:-translate-y-2 transition-all shadow-xl flex flex-col justify-between min-h-[250px] relative border border-white/10`}>
+                    <button key={i} onClick={() => { window.history.pushState({ subview: 'signup' }, '', window.location.href); setRole(r.title); setView('signup'); setConsentToDisplay(false); }} className={`${r.color} p-8 lg:p-10 rounded-[2rem] text-left group hover:-translate-y-2 transition-all shadow-xl flex flex-col justify-between min-h-[250px] relative border border-white/10`}>
                         <div><h3 className="text-2xl font-black mb-4 leading-tight uppercase tracking-tighter text-white">{r.title}</h3><p className="text-white/60 font-bold text-[10px] uppercase tracking-widest">{r.sub}</p></div>
                         <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-slate-950 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-md mt-6"><ArrowRight className="w-5 h-5" /></div>
                     </button>
@@ -2071,20 +2497,40 @@ const GetInvolvedPage = ({ setNotif, onAddSpecialist, dynamicSpecialists }) => {
                         <p className="text-slate-500 font-medium">No public profiles found yet. Be the first to join the movement!</p>
                     </div>
                 ) : (
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {dynamicSpecialists.map((person, index) => (
-                            <div key={index} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start space-x-4">
-                                <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <User className="w-6 h-6" />
+                            <div key={index} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col space-y-3">
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <User className="w-6 h-6" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h4 className="font-black text-slate-950 tracking-tight leading-tight">{person.name}</h4>
+                                        <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-0.5">{person.role}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h4 className="font-black text-slate-950 tracking-tight leading-tight mb-1">{person.name}</h4>
-                                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">{person.role}</p>
+                                <div className="space-y-1 pt-1 border-t border-slate-100">
+                                    {person.location && <p className="text-xs text-slate-500 flex items-center gap-1.5"><MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" />{person.location}</p>}
+                                    {person.phone && <p className="text-xs text-slate-500 flex items-center gap-1.5"><Phone className="w-3 h-3 text-slate-400 flex-shrink-0" />{person.phone}</p>}
+                                    {person.availability && <span className="inline-block px-2 py-0.5 bg-green-50 border border-green-100 text-green-700 text-[9px] font-black uppercase tracking-wider rounded-md">{person.availability}</span>}
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
+            </div>
+
+            {/* SPECIALIST INBOX */}
+            <div className="max-w-7xl mx-auto px-6 w-full mt-20 pt-16 border-t border-slate-200">
+                <div className="flex items-center space-x-4 mb-4">
+                    <div className="w-12 h-12 bg-slate-950 text-white rounded-xl flex items-center justify-center flex-shrink-0"><ClipboardList className="w-6 h-6" /></div>
+                    <div>
+                        <h3 className="text-3xl font-black text-slate-950 uppercase tracking-tighter">Specialist Inbox</h3>
+                        <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">First-Come, First-Serve Patient Matching</p>
+                    </div>
+                </div>
+                <p className="text-slate-600 font-medium mb-8 max-w-2xl">Registered specialists — enter your email to view pending patient requests for your specialty. Claim a booking to receive the patient's contact and lock in the session.</p>
+                <SpecialistInbox setNotif={setNotif} />
             </div>
 
         </div>
@@ -2101,7 +2547,8 @@ const App = () => {
     
     const [notif, setNotif] = useState(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    
+    const [isPremium, setIsPremium] = useState(false);
+
     // Global State
     const [dynamicSpecialists, setDynamicSpecialists] = useState([]);
 
@@ -2110,9 +2557,9 @@ const App = () => {
         const fetchSpecialists = async () => {
             if (supabase) {
                 try {
-                    const { data, error } = await supabase.from('profiles').select('full_name, role').eq('public_consent', true);
+                    const { data, error } = await supabase.from('profiles').select('full_name, role, phone, location, availability').eq('public_consent', true);
                     if (data && !error) {
-                        const formatted = data.map(p => ({ name: p.full_name, role: p.role }));
+                        const formatted = data.map(p => ({ name: p.full_name, role: p.role, phone: p.phone, location: p.location, availability: p.availability }));
                         setDynamicSpecialists(formatted);
                     }
                 } catch (err) {
@@ -2123,19 +2570,32 @@ const App = () => {
         fetchSpecialists();
     }, []);
 
+    const isProgrammaticNav = useRef(false);
+    const scrollPositions = useRef({});
+    const mainContentRef = useRef(null);
+
     // 2. Listen for Hash Changes (Browser Back/Forward buttons)
-    useEffect(() => { 
+    useEffect(() => {
         const handleHashChange = () => {
             const hash = window.location.hash.replace('#', '');
             const validPage = Object.values(PAGES).includes(hash) ? hash : PAGES.HOME;
             setCurrentPage(validPage);
-            window.scrollTo({ top: 0, behavior: 'smooth' }); 
-            setIsMobileMenuOpen(false); // Close menu on navigation
+            setIsMobileMenuOpen(false);
+
+            if (isProgrammaticNav.current) {
+                isProgrammaticNav.current = false;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                // Browser back/forward — restore saved scroll position
+                const saved = scrollPositions.current[validPage];
+                requestAnimationFrame(() => window.scrollTo({ top: saved ?? 0 }));
+            }
+            // Announce new page to screen readers by focusing main landmark
+            requestAnimationFrame(() => mainContentRef.current?.focus());
         };
 
         window.addEventListener('hashchange', handleHashChange);
-        
-        // Set initial hash if missing
+
         if (!window.location.hash) {
             window.location.hash = PAGES.HOME;
         }
@@ -2143,14 +2603,31 @@ const App = () => {
         return () => window.removeEventListener('hashchange', handleHashChange);
     }, []);
 
+    // Detect browser back while a modal/subview is open (hash stays the same)
+    useEffect(() => {
+        const handlePopState = () => {
+            const hash = window.location.hash.replace('#', '');
+            const page = Object.values(PAGES).includes(hash) ? hash : PAGES.HOME;
+            if (page === currentPage) {
+                // Hash didn't change — user pressed back inside a modal/sub-view
+                window.dispatchEvent(new CustomEvent('closeSubview'));
+            }
+        };
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [currentPage]);
+
     // 3. Navigation helper function
     const navigate = (pageId) => {
+        // Save scroll position of the page we're leaving
+        scrollPositions.current[currentPage] = window.scrollY;
+        isProgrammaticNav.current = true;
         window.location.hash = pageId;
     };
 
     const renderPage = () => {
         switch (currentPage) {
-            case PAGES.THERAPIES: return <TherapiesPage setNotif={setNotif} dynamicSpecialists={dynamicSpecialists} />;
+            case PAGES.THERAPIES: return <TherapiesPage setNotif={setNotif} dynamicSpecialists={dynamicSpecialists} isPremium={isPremium} setIsPremium={setIsPremium} navigate={navigate} />;
             case PAGES.GET_INVOLVED: return <GetInvolvedPage setNotif={setNotif} onAddSpecialist={(spec) => setDynamicSpecialists([...dynamicSpecialists, spec])} dynamicSpecialists={dynamicSpecialists} />;
             case PAGES.RESOURCES: return <ResourcesPage setNotif={setNotif} />;
             case PAGES.RESEARCH: return <ResearchPage setNotif={setNotif} />;
@@ -2163,7 +2640,20 @@ const App = () => {
     return (
         <div className="flex flex-col min-h-screen bg-white font-sans text-slate-950 antialiased pb-0 lg:pb-0">
             {notif && <Notification message={notif.msg} type={notif.type} onClose={() => setNotif(null)} />}
-            
+
+            {/* Screen-reader page-change announcement */}
+            <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+                {NAV_ITEMS.find(n => n.id === currentPage)?.label ?? 'Home'} page
+            </div>
+
+            {/* Skip-to-content for keyboard / screen-reader users */}
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-1/2 focus:-translate-x-1/2 focus:z-[9999] focus:px-6 focus:py-3 focus:bg-blue-600 focus:text-white focus:font-black focus:rounded-full focus:text-sm focus:shadow-xl"
+            >
+                Skip to main content
+            </a>
+
             {/* Top Header - Restructured for Mobile Scrollable Nav */}
             <header className="fixed top-0 w-full z-[1000] bg-white/95 backdrop-blur-lg border-b border-slate-100 flex flex-col">
                 {/* Top Row: Logo & Actions */}
@@ -2174,11 +2664,16 @@ const App = () => {
                     </button>
                     
                     {/* Desktop Nav (Hidden on Mobile) */}
-                    <nav className="hidden lg:flex items-center space-x-2">
+                    <nav className="hidden lg:flex items-center space-x-2" aria-label="Main navigation">
                         {NAV_ITEMS.map((item) => {
-                            if (item.id === PAGES.HOME) return null; 
+                            if (item.id === PAGES.HOME) return null;
                             return (
-                                <button key={item.id} onClick={() => navigate(item.id)} className={`flex items-center space-x-1.5 px-4 py-2.5 font-black uppercase text-[10px] tracking-widest transition-all rounded-full ${currentPage === item.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-700'}`}>
+                                <button
+                                    key={item.id}
+                                    onClick={() => navigate(item.id)}
+                                    aria-current={currentPage === item.id ? 'page' : undefined}
+                                    className={`flex items-center space-x-1.5 px-4 py-2.5 font-black uppercase text-[10px] tracking-widest transition-all rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 ${currentPage === item.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-700'}`}
+                                >
                                     {item.icon}<span>{item.label}</span>
                                 </button>
                             );
@@ -2192,44 +2687,49 @@ const App = () => {
                     </div>
 
                     {/* Mobile Hamburger Toggle (Always Visible on Small Screens) */}
-                    <button 
-                        className="lg:hidden p-2 text-slate-950 focus:outline-none hover:text-blue-600 transition-colors z-50"
+                    <button
+                        className="lg:hidden p-2 text-slate-950 hover:text-blue-600 transition-colors z-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-lg"
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                        aria-expanded={isMobileMenuOpen}
+                        aria-controls="mobile-menu"
                     >
                         {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                     </button>
                 </div>
 
                 {/* Bottom Row: Mobile Nav (Scrollable Horizontal Row) */}
-                <div className="lg:hidden flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] bg-slate-50 border-t border-slate-200 px-4 py-3 space-x-6 shadow-sm">
+                <nav aria-label="Mobile navigation" className="lg:hidden flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] bg-slate-50 border-t border-slate-200 px-4 py-3 space-x-6 shadow-sm">
                     {NAV_ITEMS.map((item) => {
-                        if (item.id === PAGES.HOME) return null; 
+                        if (item.id === PAGES.HOME) return null;
                         const isActive = currentPage === item.id;
                         return (
-                            <button 
-                                key={item.id} 
-                                onClick={() => navigate(item.id)} 
-                                className={`flex items-center space-x-2 whitespace-nowrap font-black uppercase text-[10px] tracking-widest transition-all pb-1 border-b-2 ${isActive ? 'text-blue-600 border-blue-600' : 'text-slate-500 border-transparent hover:text-blue-500'}`}
+                            <button
+                                key={item.id}
+                                onClick={() => navigate(item.id)}
+                                aria-current={isActive ? 'page' : undefined}
+                                className={`flex items-center space-x-2 whitespace-nowrap font-black uppercase text-[10px] tracking-widest transition-all pb-1 border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded ${isActive ? 'text-blue-600 border-blue-600' : 'text-slate-500 border-transparent hover:text-blue-500'}`}
                             >
                                 {React.cloneElement(item.icon, { className: 'w-4 h-4 mb-0' })}
                                 <span>{item.label}</span>
                             </button>
                         );
                     })}
-                </div>
+                </nav>
             </header>
 
             {/* Mobile Full-Screen Menu Overlay */}
             {isMobileMenuOpen && (
-                <div className="fixed inset-0 top-20 z-[999] bg-white border-t border-slate-100 p-6 flex flex-col space-y-6 lg:hidden overflow-y-auto animate-in fade-in duration-200">
-                    <nav className="flex flex-col space-y-3">
+                <div id="mobile-menu" className="fixed inset-0 top-20 z-[999] bg-white border-t border-slate-100 p-6 flex flex-col space-y-6 lg:hidden overflow-y-auto animate-in fade-in duration-200">
+                    <nav aria-label="Full-screen mobile navigation" className="flex flex-col space-y-3">
                         {NAV_ITEMS.map((item) => {
                             if (item.id === PAGES.HOME) return null;
                             return (
                                 <button
                                     key={item.id}
                                     onClick={() => navigate(item.id)}
-                                    className={`flex items-center space-x-3 px-5 py-4 font-black uppercase text-xs tracking-widest transition-all rounded-2xl ${currentPage === item.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 bg-slate-50 hover:bg-blue-50 hover:text-blue-700'}`}
+                                    aria-current={currentPage === item.id ? 'page' : undefined}
+                                    className={`flex items-center space-x-3 px-5 py-4 font-black uppercase text-xs tracking-widest transition-all rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${currentPage === item.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 bg-slate-50 hover:bg-blue-50 hover:text-blue-700'}`}
                                 >
                                     {React.cloneElement(item.icon, { className: 'w-5 h-5 mb-0' })}<span className="ml-2">{item.label}</span>
                                 </button>
@@ -2243,7 +2743,12 @@ const App = () => {
             )}
 
             {/* Main Content Area - Padding increased on mobile to account for the double-row header */}
-            <main className="flex-1 w-full pt-[120px] lg:pt-20">{renderPage()}</main>
+            <main
+                ref={mainContentRef}
+                id="main-content"
+                tabIndex={-1}
+                className="flex-1 w-full pt-[120px] lg:pt-20 focus:outline-none"
+            >{renderPage()}</main>
 
         </div>
     );

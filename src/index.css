@@ -46,7 +46,7 @@
   }
 
   button {
-    @apply font-black transition-all outline-none;
+    @apply font-black transition-all;
   }
 
   input, textarea, select {
@@ -310,7 +310,13 @@
   }
 
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-red-700;
+    @apply outline-2 outline-offset-2 outline-blue-600;
+  }
+
+  /* Restore focus-visible on elements that explicitly silence outline */
+  .outline-none:focus-visible {
+    outline: 2px solid #2563eb !important;
+    outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {

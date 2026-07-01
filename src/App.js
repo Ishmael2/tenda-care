@@ -62,10 +62,19 @@ const Notification = ({ message, type, onClose }) => {
 
   return (
     <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[3000] animate-in fade-in slide-in-from-top-4 duration-500 w-full max-w-sm px-6">
-      <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center space-x-3 border-2 backdrop-blur-md ${type === 'success' ? 'bg-slate-900/90 text-white border-green-500' : 'bg-red-50/90 text-red-900 border-red-200'}`}>
-        {type === 'success' ? <CheckCircle2 className="text-green-500 w-5 h-5 flex-shrink-0" /> : <Info className="text-red-500 w-5 h-5 flex-shrink-0" />}
+      <div
+        role={type === 'error' ? 'alert' : 'status'}
+        aria-live={type === 'error' ? 'assertive' : 'polite'}
+        aria-atomic="true"
+        className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center space-x-3 border-2 backdrop-blur-md ${type === 'success' ? 'bg-slate-900/90 text-white border-green-500' : 'bg-red-50/90 text-red-900 border-red-200'}`}
+      >
+        {type === 'success'
+          ? <CheckCircle2 aria-hidden="true" className="text-green-500 w-5 h-5 flex-shrink-0" />
+          : <Info aria-hidden="true" className="text-red-500 w-5 h-5 flex-shrink-0" />}
         <span className="font-bold text-sm">{message}</span>
-        <button onClick={onClose} className="ml-auto hover:opacity-70 p-1"><X className="w-4 h-4" /></button>
+        <button onClick={onClose} aria-label="Close notification" className="ml-auto hover:opacity-70 p-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current">
+          <X aria-hidden="true" className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
@@ -1030,7 +1039,7 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists, isPremium, setIsPremium, 
                     {pwdServices.map(s => {
                         const hydrated = hydrateService(s);
                         return (
-                        <button key={s.id} onClick={() => { window.history.pushState({ subview: 'service' }, '', window.location.href); setSelected(hydrated); }} className="bg-white p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex flex-col items-start border border-slate-100 hover:border-blue-200 text-left outline-none h-full relative overflow-hidden">
+                        <button key={s.id} onClick={() => { window.history.pushState({ subview: 'service' }, '', window.location.href); setSelected(hydrated); }} className="bg-white p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex flex-col items-start border border-slate-100 hover:border-blue-200 text-left h-full relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2">
                             <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all">{s.icon}</div>
                             <h3 className="text-xl font-black mb-3 uppercase tracking-tight text-slate-950 leading-tight group-hover:text-blue-600 transition-colors">{s.title}</h3>
                             <p className="text-slate-500 font-medium mb-8 leading-relaxed flex-grow text-sm">{s.desc}</p>
@@ -1058,7 +1067,7 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists, isPremium, setIsPremium, 
                     {caregiverServices.map(s => {
                         const hydrated = hydrateService(s);
                         return (
-                        <button key={s.id} onClick={() => { window.history.pushState({ subview: 'service' }, '', window.location.href); setSelected(hydrated); }} className="bg-white p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex flex-col items-start border border-slate-100 hover:border-blue-200 text-left outline-none h-full relative overflow-hidden">
+                        <button key={s.id} onClick={() => { window.history.pushState({ subview: 'service' }, '', window.location.href); setSelected(hydrated); }} className="bg-white p-8 rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex flex-col items-start border border-slate-100 hover:border-blue-200 text-left h-full relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2">
                             <div className="w-14 h-14 bg-slate-950 rounded-xl flex items-center justify-center text-white mb-6 group-hover:bg-blue-600 transition-all">{s.icon}</div>
                             <h3 className="text-xl font-black mb-3 uppercase tracking-tight text-slate-950 leading-tight group-hover:text-blue-600 transition-colors">{s.title}</h3>
                             <p className="text-slate-500 font-medium mb-8 leading-relaxed flex-grow text-sm">{s.desc}</p>
@@ -1168,16 +1177,16 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists, isPremium, setIsPremium, 
                                 setSelected(null); setIsBooking(false);
                             }}>
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Patient / Caretaker Name</label>
-                                    <input name="patientName" placeholder="Full Legal Name" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                    <label htmlFor="therapy-name" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Patient / Caretaker Name</label>
+                                    <input id="therapy-name" name="patientName" placeholder="Full Legal Name" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required aria-required="true" />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Contact Information</label>
-                                    <input name="contact" placeholder="Email or Phone Number" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                    <label htmlFor="therapy-contact" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Contact Information</label>
+                                    <input id="therapy-contact" name="contact" placeholder="Email or Phone Number" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required aria-required="true" />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Preferred Schedule</label>
-                                    <input name="preferredDate" type="date" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                    <label htmlFor="therapy-date" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Preferred Schedule</label>
+                                    <input id="therapy-date" name="preferredDate" type="date" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required aria-required="true" />
                                 </div>
                                 <div className="sticky bottom-0 bg-white flex gap-4 pt-4 pb-2 border-t border-slate-100 mt-2">
                                     <button type="button" onClick={() => setIsBooking(false)} className="px-6 py-5 bg-slate-100 text-slate-500 font-black rounded-full uppercase tracking-[0.2em] text-xs hover:bg-slate-200">BACK</button>
@@ -1234,16 +1243,16 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists, isPremium, setIsPremium, 
                             setGeneralBookingCategory(null);
                         }}>
                             <div>
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Patient / Caretaker Name</label>
-                                <input name="patientName" placeholder="Full Legal Name" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                <label htmlFor="gen-name" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Patient / Caretaker Name</label>
+                                <input id="gen-name" name="patientName" placeholder="Full Legal Name" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required aria-required="true" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Contact Information</label>
-                                <input name="contact" placeholder="Email or Phone Number" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                <label htmlFor="gen-contact" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Contact Information</label>
+                                <input id="gen-contact" name="contact" placeholder="Email or Phone Number" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required aria-required="true" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Specific Service Needed</label>
-                                <select name="service" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
+                                <label htmlFor="gen-service" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Specific Service Needed</label>
+                                <select id="gen-service" name="service" required aria-required="true" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
                                     <option value="">Select a specific area...</option>
                                     {generalBookingCategory === 'Therapy' ? (
                                         pwdServices.map(s => <option key={s.id} value={s.title}>{s.title}</option>)
@@ -1254,8 +1263,8 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists, isPremium, setIsPremium, 
                                 </select>
                             </div>
                             <div>
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 flex items-center"><Calendar className="w-3 h-3 mr-1"/> Preferred Date</label>
-                                <input name="preferredDate" type="date" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                <label htmlFor="gen-date" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 flex items-center"><Calendar aria-hidden="true" className="w-3 h-3 mr-1"/> Preferred Date</label>
+                                <input id="gen-date" name="preferredDate" type="date" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required aria-required="true" />
                             </div>
                             <div className="sticky bottom-0 bg-white flex gap-4 pt-4 pb-2 border-t border-slate-100 mt-6">
                                 <button type="button" onClick={() => setGeneralBookingCategory(null)} className="px-6 py-5 bg-slate-100 text-slate-500 font-black rounded-full uppercase tracking-[0.2em] text-xs hover:bg-slate-200">CANCEL</button>
@@ -1671,8 +1680,8 @@ const ResearchPage = ({ setNotif }) => {
                             setRepairImages([]);
                         }}>
                             <div>
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Equipment Type</label>
-                                <select name="equipmentType" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
+                                <label htmlFor="repair-equipment" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Equipment Type</label>
+                                <select id="repair-equipment" name="equipmentType" required aria-required="true" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
                                     <option value="">Select Equipment...</option>
                                     <option value="wheelchair">Manual/Electric Wheelchair</option>
                                     <option value="pcb">Custom PCB / Tracking Hardware</option>
@@ -1681,46 +1690,48 @@ const ResearchPage = ({ setNotif }) => {
                                     <option value="other">Other Assistive Device</option>
                                 </select>
                             </div>
-                            
+
                             {/* REPAIR IMAGE UPLOAD */}
                             <div className="w-full">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Visual Proof of Defect</label>
-                                <label className="w-full border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center text-slate-500 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-600 transition-colors cursor-pointer bg-slate-50 group">
-                                    <Upload className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Visual Proof of Defect</span>
+                                <label htmlFor="repair-photos" className="w-full border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center text-slate-500 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-600 transition-colors cursor-pointer bg-slate-50 group">
+                                    <Upload aria-hidden="true" className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
                                     <span className="font-bold text-sm">Upload Photos</span>
                                     <span className="text-xs text-slate-400 mt-1">JPEG, PNG up to 5MB</span>
-                                    <input 
-                                        type="file" 
-                                        accept="image/*" 
+                                    <input
+                                        id="repair-photos"
+                                        type="file"
+                                        accept="image/*"
                                         multiple
-                                        className="hidden" 
+                                        className="hidden"
+                                        aria-label="Upload photos of the defect"
                                         onChange={(e) => {
                                             if(e.target.files) {
                                                 setRepairImages(Array.from(e.target.files));
                                             }
-                                        }} 
+                                        }}
                                     />
                                 </label>
                                 {repairImages.length > 0 && (
                                     <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-700 text-sm font-bold flex-wrap gap-2">
-                                        <CheckCircle2 className="w-4 h-4 mr-1 flex-shrink-0" />
+                                        <CheckCircle2 aria-hidden="true" className="w-4 h-4 mr-1 flex-shrink-0" />
                                         {repairImages.length} photo(s) selected
                                     </div>
                                 )}
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Describe the Defect / Issue</label>
-                                <textarea name="defect" placeholder="What exactly needs repair or assessment? (e.g., motor replacement, firmware flash, wheel alignment)" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none font-medium h-24 focus:border-blue-500 transition-colors"></textarea>
+                                <label htmlFor="repair-defect" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Describe the Defect / Issue</label>
+                                <textarea id="repair-defect" name="defect" placeholder="What exactly needs repair or assessment? (e.g., motor replacement, firmware flash, wheel alignment)" required aria-required="true" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none font-medium h-24 focus:border-blue-500 transition-colors"></textarea>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 flex items-center"><Calendar className="w-3 h-3 mr-1"/> Drop-off Date</label>
-                                    <input name="dropoffDate" type="date" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                    <label htmlFor="repair-date" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 flex items-center"><Calendar aria-hidden="true" className="w-3 h-3 mr-1"/> Drop-off Date</label>
+                                    <input id="repair-date" name="dropoffDate" type="date" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required aria-required="true" />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 flex items-center"><Clock className="w-3 h-3 mr-1"/> Preferred Time</label>
-                                    <input name="preferredTime" type="time" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                    <label htmlFor="repair-time" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 flex items-center"><Clock aria-hidden="true" className="w-3 h-3 mr-1"/> Preferred Time</label>
+                                    <input id="repair-time" name="preferredTime" type="time" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required aria-required="true" />
                                 </div>
                             </div>
                             
@@ -1773,12 +1784,12 @@ const ResearchPage = ({ setNotif }) => {
                             setResearchDocs([]);
                         }}>
                             <div>
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Primary Contact / PI</label>
-                                <input name="piContact" placeholder="Full Name & Institution" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                <label htmlFor="res-contact" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Primary Contact / PI</label>
+                                <input id="res-contact" name="piContact" placeholder="Full Name & Institution" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required aria-required="true" />
                             </div>
                             <div>
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Service Requested</label>
-                                <select name="serviceType" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
+                                <label htmlFor="res-service" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Service Requested</label>
+                                <select id="res-service" name="serviceType" required aria-required="true" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
                                     <option value="">Select Primary Need...</option>
                                     <option value="data_collection">Field Enumerators & Data Collection</option>
                                     <option value="analysis">Statistical Analysis & Data Management</option>
@@ -1787,49 +1798,50 @@ const ResearchPage = ({ setNotif }) => {
                                     <option value="consultation">General Ideation & Ethics Consultation</option>
                                 </select>
                             </div>
-                            
-                            {/* UPDATED: Location & Timeline */}
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Project Timeline</label>
-                                    <input placeholder="e.g., 3 Months" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                    <label htmlFor="res-timeline" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Project Timeline</label>
+                                    <input id="res-timeline" name="timeline" placeholder="e.g., 3 Months" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required aria-required="true" />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Location</label>
-                                    <input placeholder="e.g., Nairobi, Kenya" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                                    <label htmlFor="res-location" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Location</label>
+                                    <input id="res-location" name="location" placeholder="e.g., Nairobi, Kenya" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required aria-required="true" />
                                 </div>
                             </div>
 
                             {/* RESEARCH DOCUMENT UPLOAD */}
                             <div className="w-full">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Supporting Documents</label>
-                                <label className="w-full border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center text-slate-500 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-600 transition-colors cursor-pointer bg-slate-50 group">
-                                    <Upload className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Supporting Documents</span>
+                                <label htmlFor="res-docs" className="w-full border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center text-slate-500 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-600 transition-colors cursor-pointer bg-slate-50 group">
+                                    <Upload aria-hidden="true" className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
                                     <span className="font-bold text-sm">Attach Proposal or Docs</span>
                                     <span className="text-xs text-slate-400 mt-1">PDF, DOC, DOCX up to 10MB</span>
-                                    <input 
-                                        type="file" 
-                                        accept=".pdf,.doc,.docx" 
+                                    <input
+                                        id="res-docs"
+                                        type="file"
+                                        accept=".pdf,.doc,.docx"
                                         multiple
-                                        className="hidden" 
+                                        className="hidden"
+                                        aria-label="Attach supporting documents"
                                         onChange={(e) => {
                                             if(e.target.files) {
                                                 setResearchDocs(Array.from(e.target.files));
                                             }
-                                        }} 
+                                        }}
                                     />
                                 </label>
                                 {researchDocs.length > 0 && (
                                     <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-700 text-sm font-bold flex-wrap gap-2">
-                                        <CheckCircle2 className="w-4 h-4 mr-1 flex-shrink-0" />
+                                        <CheckCircle2 aria-hidden="true" className="w-4 h-4 mr-1 flex-shrink-0" />
                                         {researchDocs.length} document(s) attached
                                     </div>
                                 )}
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Project Overview</label>
-                                <textarea name="overview" placeholder="Briefly describe your research goals, target demographic, and timeline..." required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none font-medium h-28 focus:border-blue-500 transition-colors"></textarea>
+                                <label htmlFor="res-overview" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Project Overview</label>
+                                <textarea id="res-overview" name="overview" placeholder="Briefly describe your research goals, target demographic, and timeline..." required aria-required="true" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none font-medium h-28 focus:border-blue-500 transition-colors"></textarea>
                             </div>
                             
                             <div className="sticky bottom-0 bg-white flex gap-4 pt-4 pb-2 border-t border-slate-100 mt-6">
@@ -2403,25 +2415,25 @@ const GetInvolvedPage = ({ setNotif, onAddSpecialist, dynamicSpecialists }) => {
                     
                 }}>
                     <div>
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Identity Details</label>
-                        <input name="fullName" placeholder="Full Legal Name" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                        <label htmlFor="gi-name" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Identity Details</label>
+                        <input id="gi-name" name="fullName" placeholder="Full Legal Name" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required aria-required="true" />
                     </div>
                     <div>
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Communication</label>
-                        <input name="email" type="email" placeholder="Professional Email" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                        <label htmlFor="gi-email" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Communication</label>
+                        <input id="gi-email" name="email" type="email" placeholder="Professional Email" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required aria-required="true" />
                     </div>
                     <div>
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Phone / WhatsApp</label>
-                        <input name="phone" type="tel" placeholder="+254 7XX XXX XXX" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                        <label htmlFor="gi-phone" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Phone / WhatsApp</label>
+                        <input id="gi-phone" name="phone" type="tel" placeholder="+254 7XX XXX XXX" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required aria-required="true" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">County / Location</label>
-                            <input name="location" placeholder="e.g. Nairobi, Mombasa" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
+                            <label htmlFor="gi-location" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">County / Location</label>
+                            <input id="gi-location" name="location" placeholder="e.g. Nairobi, Mombasa" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required aria-required="true" />
                         </div>
                         <div>
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Years of Experience</label>
-                            <select name="experienceYears" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
+                            <label htmlFor="gi-experience" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Years of Experience</label>
+                            <select id="gi-experience" name="experienceYears" required aria-required="true" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
                                 <option value="">Select...</option>
                                 <option value="0-1">Less than 1 year</option>
                                 <option value="1-3">1 – 3 years</option>
@@ -2432,8 +2444,8 @@ const GetInvolvedPage = ({ setNotif, onAddSpecialist, dynamicSpecialists }) => {
                         </div>
                     </div>
                     <div>
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Availability</label>
-                        <select name="availability" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
+                        <label htmlFor="gi-availability" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Availability</label>
+                        <select id="gi-availability" name="availability" required aria-required="true" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none appearance-none cursor-pointer">
                             <option value="">Select...</option>
                             <option value="Volunteer">Volunteer (no charge)</option>
                             <option value="Paid">Paid services only</option>
@@ -2441,8 +2453,8 @@ const GetInvolvedPage = ({ setNotif, onAddSpecialist, dynamicSpecialists }) => {
                         </select>
                     </div>
                     <div>
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Mission Statement</label>
-                        <textarea name="mission" placeholder="Briefly describe your focus and how you can help..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none font-medium h-28 focus:border-blue-500" required></textarea>
+                        <label htmlFor="gi-mission" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Mission Statement</label>
+                        <textarea id="gi-mission" name="mission" placeholder="Briefly describe your focus and how you can help..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none font-medium h-28 focus:border-blue-500" required aria-required="true"></textarea>
                     </div>
 
                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-start space-x-3 cursor-pointer" onClick={() => setConsentToDisplay(!consentToDisplay)}>
@@ -2658,8 +2670,8 @@ const App = () => {
             <header className="fixed top-0 w-full z-[1000] bg-white/95 backdrop-blur-lg border-b border-slate-100 flex flex-col">
                 {/* Top Row: Logo & Actions */}
                 <div className="h-20 flex justify-between items-center px-4 lg:px-6">
-                    <button onClick={() => navigate(PAGES.HOME)} className="flex items-center space-x-2 lg:space-x-3 outline-none group z-50">
-                        <img src="/logo.png" alt="Tenda Care Logo" className="w-8 h-8 lg:w-10 lg:h-10 object-contain group-hover:scale-105 transition-all" />
+                    <button onClick={() => navigate(PAGES.HOME)} className="flex items-center space-x-2 lg:space-x-3 group z-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 rounded-lg">
+                        <img src="/logo.png" alt="Tenda Care home" className="w-8 h-8 lg:w-10 lg:h-10 object-contain group-hover:scale-105 transition-all" />
                         <span className="text-lg lg:text-xl font-black tracking-tighter uppercase leading-none group-hover:text-blue-600 transition-colors">Tenda Care</span>
                     </button>
                     

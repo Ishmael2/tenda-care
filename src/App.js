@@ -1082,7 +1082,7 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists, isPremium, setIsPremium, 
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="therapy-service-modal-title"
-                        className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
+                        className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 max-h-[90vh] overflow-y-auto custom-scrollbar"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <button onClick={() => {setSelected(null); setIsBooking(false);}} aria-label="Close service details" className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all"><X className="w-5 h-5"/></button>
@@ -1179,9 +1179,9 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists, isPremium, setIsPremium, 
                                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">Preferred Schedule</label>
                                     <input name="preferredDate" type="date" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
                                 </div>
-                                <div className="flex gap-4 pt-4">
+                                <div className="sticky bottom-0 bg-white flex gap-4 pt-4 pb-2 border-t border-slate-100 mt-2">
                                     <button type="button" onClick={() => setIsBooking(false)} className="px-6 py-5 bg-slate-100 text-slate-500 font-black rounded-full uppercase tracking-[0.2em] text-xs hover:bg-slate-200">BACK</button>
-                                    <button type="submit" className="flex-1 py-5 bg-blue-600 text-white font-black rounded-full shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-blue-700">CONFIRM BOOKING</button>
+                                    <button type="submit" className="flex-1 py-5 bg-blue-600 text-white font-black rounded-full shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-blue-700 flex items-center justify-center gap-2">SUBMIT BOOKING <ArrowRight className="w-4 h-4" /></button>
                                 </div>
                             </form>
                         )}
@@ -1257,9 +1257,9 @@ const TherapiesPage = ({ setNotif, dynamicSpecialists, isPremium, setIsPremium, 
                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 flex items-center"><Calendar className="w-3 h-3 mr-1"/> Preferred Date</label>
                                 <input name="preferredDate" type="date" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:border-blue-500 outline-none" required />
                             </div>
-                            <div className="flex gap-4 pt-4 border-t border-slate-100 mt-6">
+                            <div className="sticky bottom-0 bg-white flex gap-4 pt-4 pb-2 border-t border-slate-100 mt-6">
                                 <button type="button" onClick={() => setGeneralBookingCategory(null)} className="px-6 py-5 bg-slate-100 text-slate-500 font-black rounded-full uppercase tracking-[0.2em] text-xs hover:bg-slate-200">CANCEL</button>
-                                <button type="submit" className="flex-1 py-5 bg-slate-950 text-white font-black rounded-full shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-slate-800">SUBMIT BOOKING</button>
+                                <button type="submit" className="flex-1 py-5 bg-slate-950 text-white font-black rounded-full shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-slate-800 flex items-center justify-center gap-2">SUBMIT BOOKING <ArrowRight className="w-4 h-4" /></button>
                             </div>
                         </form>
                     </div>
@@ -1642,7 +1642,7 @@ const ResearchPage = ({ setNotif }) => {
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="repair-modal-title"
-                        className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
+                        className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 max-h-[90vh] overflow-y-auto custom-scrollbar"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <button onClick={() => { setShowRepairBooking(false); setRepairImages([]); }} aria-label="Close repair booking" className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-700 transition-all z-10"><X className="w-5 h-5"/></button>
@@ -1724,9 +1724,9 @@ const ResearchPage = ({ setNotif }) => {
                                 </div>
                             </div>
                             
-                            <div className="flex gap-4 pt-4 border-t border-slate-100 mt-6">
+                            <div className="sticky bottom-0 bg-white flex gap-4 pt-4 pb-2 border-t border-slate-100 mt-6">
                                 <button type="button" onClick={() => { setShowRepairBooking(false); setRepairImages([]); }} className="px-6 py-5 bg-slate-100 text-slate-500 font-black rounded-full uppercase tracking-[0.2em] text-xs hover:bg-slate-200">CANCEL</button>
-                                <button type="submit" className="flex-1 py-5 bg-slate-950 text-white font-black rounded-full shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-slate-800">CONFIRM DROP-OFF</button>
+                                <button type="submit" className="flex-1 py-5 bg-slate-950 text-white font-black rounded-full shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-slate-800 flex items-center justify-center gap-2">SUBMIT BOOKING <ArrowRight className="w-4 h-4" /></button>
                             </div>
                         </form>
                     </div>
@@ -1744,7 +1744,7 @@ const ResearchPage = ({ setNotif }) => {
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="research-booking-modal-title"
-                        className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar"
+                        className="bg-white w-full max-w-2xl rounded-[2rem] p-8 lg:p-12 shadow-2xl relative animate-in zoom-in-95 max-h-[90vh] overflow-y-auto custom-scrollbar"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <button onClick={() => { setShowResearchBooking(false); setResearchDocs([]); }} aria-label="Close research booking" className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-blue-100 hover:text-blue-600 transition-all z-10"><X className="w-5 h-5"/></button>
@@ -1832,9 +1832,9 @@ const ResearchPage = ({ setNotif }) => {
                                 <textarea name="overview" placeholder="Briefly describe your research goals, target demographic, and timeline..." required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none resize-none font-medium h-28 focus:border-blue-500 transition-colors"></textarea>
                             </div>
                             
-                            <div className="flex gap-4 pt-4 border-t border-slate-100 mt-6">
+                            <div className="sticky bottom-0 bg-white flex gap-4 pt-4 pb-2 border-t border-slate-100 mt-6">
                                 <button type="button" onClick={() => { setShowResearchBooking(false); setResearchDocs([]); }} className="px-6 py-5 bg-slate-100 text-slate-500 font-black rounded-full uppercase tracking-[0.2em] text-xs hover:bg-slate-200">CANCEL</button>
-                                <button type="submit" className="flex-1 py-5 bg-blue-600 text-white font-black rounded-full shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-blue-700">SUBMIT REQUEST</button>
+                                <button type="submit" className="flex-1 py-5 bg-blue-600 text-white font-black rounded-full shadow-lg uppercase tracking-[0.2em] text-xs hover:bg-blue-700 flex items-center justify-center gap-2">SUBMIT BOOKING <ArrowRight className="w-4 h-4" /></button>
                             </div>
                         </form>
                     </div>

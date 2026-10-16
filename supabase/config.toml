@@ -1,0 +1,5 @@
+project_id = "xcqgcgktymkymobticqa"
+
+[functions.booking-notify]
+# Called by a database trigger, authenticated with the x-webhook-secret header instead of a JWT.
+verify_jwt = false

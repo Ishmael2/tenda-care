@@ -192,7 +192,7 @@ const AboutSection = ({ navigate }) => {
                             </div>
                             <div className="flex items-center text-slate-600 font-medium">
                                 <Mail aria-hidden="true" className="w-5 h-5 mr-4 text-blue-600" />
-                                <a href="mailto:hello@tenda-care.com" className="hover:text-blue-600 underline-offset-4 hover:underline">hello@tenda-care.com</a>
+                                <a href="mailto:tendacareke@gmail.com" className="hover:text-blue-600 underline-offset-4 hover:underline">tendacareke@gmail.com</a>
                             </div>
                             <div className="flex items-center text-slate-600 font-medium">
                                 <Phone className="w-5 h-5 mr-4 text-blue-600" />
